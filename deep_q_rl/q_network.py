@@ -49,6 +49,7 @@ class DeepQLearner:
         # Using Double DQN is pointless without periodic freezing
         if self.use_double:
             assert self.freeze_interval > 0
+            # pass
 
         lasagne.random.set_rng(self.rng)
 
@@ -91,18 +92,21 @@ class DeepQLearner:
         q_vals = lasagne.layers.get_output(self.l_out, states / input_scale)
         
         if self.freeze_interval > 0:
+            # Nature. If using periodic freezing
             next_q_vals = lasagne.layers.get_output(self.next_l_out,
                                                     next_states / input_scale)
         else:
+            # NIPS
             next_q_vals = lasagne.layers.get_output(self.l_out,
                                                     next_states / input_scale)
             next_q_vals = theano.gradient.disconnected_grad(next_q_vals)
 
         if self.use_double:
-            maxaction = T.argmax(q_vals, axis=1, keepdims=True)
+            maxaction = T.argmax(q_vals, axis=1, keepdims=False)
+            temptargets = next_q_vals[T.arange(batch_size),maxaction].reshape((-1, 1))
             target = (rewards +
                       (T.ones_like(terminals) - terminals) *
-                      self.discount * next_q_vals[maxaction])
+                      self.discount * temptargets)
         else:
             target = (rewards +
                       (T.ones_like(terminals) - terminals) *
@@ -156,8 +160,30 @@ class DeepQLearner:
             updates = lasagne.updates.apply_momentum(updates, None,
                                                      self.momentum)
 
-        self._train = theano.function([], [loss, q_vals], updates=updates,
-                                      givens=givens)
+        if False:
+            def inspect_inputs(i, node, fn):
+                if ('maxand' not in str(node).lower() and '12345' not in str(node)):
+                    return
+                print i, node, "input(s) value(s):", [input[0] for input in fn.inputs],
+                raw_input('press enter')
+
+            def inspect_outputs(i, node, fn):
+                if ('maxand' not in str(node).lower() and '12345' not in str(node)):
+                    return
+                if '12345' in str(node):
+                    print "output(s) value(s):", [np.asarray(output[0]) for output in fn.outputs]
+                else:
+                    print "output(s) value(s):", [output[0] for output in fn.outputs]
+                raw_input('press enter')
+
+            self._train = theano.function([], [loss, q_vals], updates=updates,
+                                          givens=givens, mode=theano.compile.MonitorMode(
+                            pre_func=inspect_inputs,
+                            post_func=inspect_outputs))
+            theano.printing.debugprint(target)
+        else:
+            self._train = theano.function([], [loss, q_vals], updates=updates,
+                                          givens=givens)
         self._q_vals = theano.function([], q_vals,
                                        givens={states: self.states_shared})
 
