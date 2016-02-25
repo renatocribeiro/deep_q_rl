@@ -169,6 +169,10 @@ class DeepQLearner:
         elif network_type == "linear":
             return self.build_linear_network(input_width, input_height,
                                              output_dim, num_frames, batch_size)
+        elif network_type == "sygi":
+            return self.build_sygi_network(input_width, input_height,
+                                           output_dim, num_frames, batch_size)
+
         else:
             raise ValueError("Unrecognized network: {}".format(network_type))
 
@@ -336,6 +340,56 @@ class DeepQLearner:
             num_units=output_dim,
             nonlinearity=None,
             W=lasagne.init.HeUniform(),
+            b=lasagne.init.Constant(.1)
+        )
+
+        return l_out
+
+
+    def build_sygi_network(self, input_width, input_height, output_dim,
+                           num_frames, batch_size):
+        """
+        Build a small, simple network that doesn't enforce usage of GPU.
+        """
+        l_in = lasagne.layers.InputLayer(
+            shape=(batch_size, num_frames, input_width, input_height)
+        )
+
+        l_conv1 = lasagne.layers.Conv2DLayer(
+            l_in,
+            num_filters=16,
+            filter_size=(8, 8),
+            stride=(4, 4),
+            nonlinearity=lasagne.nonlinearities.rectify,
+            W=lasagne.init.Normal(.01),
+            b=lasagne.init.Constant(.1),
+        )
+
+        l_conv2 = lasagne.layers.Conv2DLayer(
+            l_conv1,
+            num_filters=32,
+            filter_size=(4, 4),
+            stride=(2, 2),
+            nonlinearity=lasagne.nonlinearities.rectify,
+            W=lasagne.init.Normal(.01),
+            b=lasagne.init.Constant(.1),
+        )
+
+        l_hidden1 = lasagne.layers.DenseLayer(
+            l_conv2,
+            num_units=256,
+            nonlinearity=lasagne.nonlinearities.rectify,
+            #W=lasagne.init.HeUniform(),
+            W=lasagne.init.Normal(.01),
+            b=lasagne.init.Constant(.1)
+        )
+
+        l_out = lasagne.layers.DenseLayer(
+            l_hidden1,
+            num_units=output_dim,
+            nonlinearity=None,
+            #W=lasagne.init.HeUniform(),
+            W=lasagne.init.Normal(.01),
             b=lasagne.init.Constant(.1)
         )
 
