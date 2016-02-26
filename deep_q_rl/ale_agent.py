@@ -160,7 +160,8 @@ class NeuralAgent(object):
 
         Arguments:
            reward      - Real valued reward.
-           observation - A height x width numpy array
+           observation - A height x width numpy array,
+                         denoting an image to pass to the network
 
         Returns:
            An integer action.
@@ -206,6 +207,7 @@ class NeuralAgent(object):
         """
         Add the most recent data to the data set and choose
         an action based on the current policy.
+        cur_img - current observation to which action should be taken
         """
 
         data_set.add_sample(self.last_img, self.last_action, reward, False)

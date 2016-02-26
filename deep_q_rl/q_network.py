@@ -44,6 +44,7 @@ class DeepQLearner:
         self.clip_delta = clip_delta
         self.freeze_interval = freeze_interval
         self.rng = rng
+        self.RAM_SIZE = 128
 
         lasagne.random.set_rng(self.rng)
 
@@ -83,14 +84,22 @@ class DeepQLearner:
             np.zeros((batch_size, 1), dtype='int32'),
             broadcastable=(False, True))
 
-        q_vals = lasagne.layers.get_output(self.l_out, states / input_scale)
+        q_vals = lasagne.layers.get_output(self.l_out,
+            { self.l_in: (states / input_scale),
+              self.l_ram_in: np.zeros((batch_size, self.RAM_SIZE)) })
         
         if self.freeze_interval > 0:
             next_q_vals = lasagne.layers.get_output(self.next_l_out,
-                                                    next_states / input_scale)
+                {
+                  self.l_in: (next_states / input_scale),
+                  self.l_ram_in: np.zeros((batch_size, self.RAM_SIZE))
+                })
         else:
             next_q_vals = lasagne.layers.get_output(self.l_out,
-                                                    next_states / input_scale)
+                {
+                  self.l_in: (next_states / input_scale),
+                  self.l_ram_in: np.zeros((batch_size, self.RAM_SIZE))
+                })
             next_q_vals = theano.gradient.disconnected_grad(next_q_vals)
 
         target = (rewards +
@@ -207,13 +216,19 @@ class DeepQLearner:
         return np.sqrt(loss)
 
     def q_vals(self, state):
+        """
+        To predict the q-values of the moves, it needs to push the states in a form of a batch to the network, and return the first element of the result.
+        """
         states = np.zeros((self.batch_size, self.num_frames, self.input_height,
                            self.input_width), dtype=theano.config.floatX)
         states[0, ...] = state
         self.states_shared.set_value(states)
         return self._q_vals()[0]
 
-    def choose_action(self, state, epsilon):
+    def choose_action(self, state, epsilon): # TODO: add ram_state here ?
+        """
+        Choosing action to perform when in testing mode.
+        """
         if self.rng.rand() < epsilon:
             return self.rng.randint(0, self.num_actions)
         q_vals = self.q_vals(state)
@@ -351,12 +366,16 @@ class DeepQLearner:
         """
         Build a small, simple network that doesn't enforce usage of GPU.
         """
-        l_in = lasagne.layers.InputLayer(
+        self.l_in = lasagne.layers.InputLayer(
             shape=(batch_size, num_frames, input_width, input_height)
         )
 
+        self.l_ram_in = lasagne.layers.InputLayer(
+            shape=(batch_size, self.RAM_SIZE) # taking the ram state only from the first frame
+        )
+
         l_conv1 = lasagne.layers.Conv2DLayer(
-            l_in,
+            self.l_in,
             num_filters=16,
             filter_size=(8, 8),
             stride=(4, 4),
@@ -383,9 +402,13 @@ class DeepQLearner:
             W=lasagne.init.Normal(.01),
             b=lasagne.init.Constant(.1)
         )
+        l_joined = lasagne.layers.ConcatLayer(
+            [l_hidden1, self.l_ram_in],
+            axis=1 # 0-based
+        )
 
         l_out = lasagne.layers.DenseLayer(
-            l_hidden1,
+            l_joined,
             num_units=output_dim,
             nonlinearity=None,
             #W=lasagne.init.HeUniform(),

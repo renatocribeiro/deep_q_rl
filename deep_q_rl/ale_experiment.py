@@ -107,7 +107,7 @@ class ALEExperiment(object):
         index = self.buffer_count % self.buffer_length
 
         # TODO: set to buffer also the state of the ram
-        # ale.getRAM()
+        # self.ale.getRAM()
 
         self.ale.getScreenGrayscale(self.screen_buffer[index, ...])
 
