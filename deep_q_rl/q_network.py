@@ -60,6 +60,8 @@ class DeepQLearner:
 
         states = T.tensor4('states')
         next_states = T.tensor4('next_states')
+        ram_states = T.matrix('ram_states')
+        next_ram_states = T.matrix('next_ram_states')
         rewards = T.col('rewards')
         actions = T.icol('actions')
         terminals = T.icol('terminals')
@@ -71,6 +73,11 @@ class DeepQLearner:
         self.next_states_shared = theano.shared(
             np.zeros((batch_size, num_frames, input_height, input_width),
                      dtype=theano.config.floatX))
+
+        self.ram_states_shared = theano.shared(
+            np.zeros((batch_size, self.RAM_SIZE), dtype=theano.config.floatX))
+        self.next_ram_states_shared = theano.shared(
+            np.zeros((batch_size, self.RAM_SIZE), dtype=theano.config.floatX))
 
         self.rewards_shared = theano.shared(
             np.zeros((batch_size, 1), dtype=theano.config.floatX),
@@ -86,19 +93,19 @@ class DeepQLearner:
 
         q_vals = lasagne.layers.get_output(self.l_out,
             { self.l_in: (states / input_scale),
-              self.l_ram_in: np.zeros((batch_size, self.RAM_SIZE)) })
+              self.l_ram_in: ram_states })
         
         if self.freeze_interval > 0:
             next_q_vals = lasagne.layers.get_output(self.next_l_out,
                 {
                   self.l_in: (next_states / input_scale),
-                  self.l_ram_in: np.zeros((batch_size, self.RAM_SIZE))
+                  self.l_ram_in: next_ram_states,
                 })
         else:
             next_q_vals = lasagne.layers.get_output(self.l_out,
                 {
                   self.l_in: (next_states / input_scale),
-                  self.l_ram_in: np.zeros((batch_size, self.RAM_SIZE))
+                  self.l_ram_in: next_ram_states,
                 })
             next_q_vals = theano.gradient.disconnected_grad(next_q_vals)
 
@@ -135,6 +142,8 @@ class DeepQLearner:
         givens = {
             states: self.states_shared,
             next_states: self.next_states_shared,
+            ram_states: self.ram_states_shared,
+            next_ram_states: self.next_ram_states_shared,
             rewards: self.rewards_shared,
             actions: self.actions_shared,
             terminals: self.terminals_shared
@@ -157,7 +166,10 @@ class DeepQLearner:
         self._train = theano.function([], [loss, q_vals], updates=updates,
                                       givens=givens)
         self._q_vals = theano.function([], q_vals,
-                                       givens={states: self.states_shared})
+                                       givens={
+                                         states: self.states_shared,
+                                         ram_states: self.ram_states_shared,
+                                         })
 
     def build_network(self, network_type, input_width, input_height,
                       output_dim, num_frames, batch_size):
@@ -199,6 +211,8 @@ class DeepQLearner:
         rewards - b x 1 numpy array
         next_states - b x f x h x w numpy array
         terminals - b x 1 numpy boolean array (currently ignored)
+        ram_states - b x R numpy array, R - ram size
+        next_ram_states - b x R numpy array
 
         Returns: average loss
         """
@@ -215,23 +229,27 @@ class DeepQLearner:
         self.update_counter += 1
         return np.sqrt(loss)
 
-    def q_vals(self, state):
+    def q_vals(self, state, ram_state=np.zeros((128,))):
         """
         To predict the q-values of the moves, it needs to push the states in a form of a batch to the network, and return the first element of the result.
         """
         states = np.zeros((self.batch_size, self.num_frames, self.input_height,
                            self.input_width), dtype=theano.config.floatX)
+        ram_states = np.zeros((self.batch_size, self.RAM_SIZE), dtype=theano.config.floatX)
         states[0, ...] = state
+        ram_states[0, ...] = ram_state
+
         self.states_shared.set_value(states)
+        self.ram_states_shared.set_value(ram_states)
         return self._q_vals()[0]
 
-    def choose_action(self, state, epsilon): # TODO: add ram_state here ?
+    def choose_action(self, state, epsilon, ram_state=np.zeros((128,))):
         """
         Choosing action to perform when in testing mode.
         """
         if self.rng.rand() < epsilon:
             return self.rng.randint(0, self.num_actions)
-        q_vals = self.q_vals(state)
+        q_vals = self.q_vals(state, ram_state)
         return np.argmax(q_vals)
 
     def reset_q_hat(self):
