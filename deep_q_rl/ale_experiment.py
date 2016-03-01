@@ -36,6 +36,8 @@ class ALEExperiment(object):
         self.screen_buffer = np.empty((self.buffer_length,
                                        self.height, self.width),
                                       dtype=np.uint8)
+        self.ram_size = 128 # TODO: pass as an argument
+        self.current_ram = np.empty((self.ram_size,), dtype=np.uint8)
 
         self.terminal_lol = False # Most recent episode ended on a loss of life
         self.max_start_nullops = max_start_nullops
@@ -106,10 +108,8 @@ class ALEExperiment(object):
         reward = self.ale.act(action)
         index = self.buffer_count % self.buffer_length
 
-        # TODO: set to buffer also the state of the ram
-        # self.ale.getRAM()
-
         self.ale.getScreenGrayscale(self.screen_buffer[index, ...])
+        self.current_ram = self.ale.getRAM()
 
         self.buffer_count += 1
         return reward
@@ -139,7 +139,7 @@ class ALEExperiment(object):
 
         start_lives = self.ale.lives()
 
-        action = self.agent.start_episode(self.get_observation())
+        action = self.agent.start_episode(self.get_observation()) # TODO: add self.current_ram
         num_steps = 0
         while True:
             reward = self._step(self.min_action_set[action])
@@ -152,7 +152,7 @@ class ALEExperiment(object):
                 self.agent.end_episode(reward, terminal)
                 break
 
-            action = self.agent.step(reward, self.get_observation())
+            action = self.agent.step(reward, self.get_observation()) # TODO: add self.current_ram
         return terminal, num_steps
 
 

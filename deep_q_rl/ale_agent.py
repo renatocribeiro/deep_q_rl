@@ -162,6 +162,7 @@ class NeuralAgent(object):
            reward      - Real valued reward.
            observation - A height x width numpy array,
                          denoting an image to pass to the network
+           TODO: ram   - RAM_SIZE numpy vector, denoting the state of the ram
 
         Returns:
            An integer action.
