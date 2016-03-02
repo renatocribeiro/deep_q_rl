@@ -45,6 +45,7 @@ class DeepQLearner:
         self.freeze_interval = freeze_interval
         self.rng = rng
         self.RAM_SIZE = 128
+        np.set_printoptions(threshold='nan')
 
         lasagne.random.set_rng(self.rng)
 
@@ -199,7 +200,7 @@ class DeepQLearner:
 
 
 
-    def train(self, states, actions, rewards, next_states, terminals):
+    def train(self, states, actions, rewards, next_states, terminals, ram_states, next_ram_states):
         """
         Train one batch.
 
@@ -222,6 +223,8 @@ class DeepQLearner:
         self.actions_shared.set_value(actions)
         self.rewards_shared.set_value(rewards)
         self.terminals_shared.set_value(terminals)
+        self.ram_states_shared.set_value(ram_states)
+        self.next_ram_states_shared.set_value(next_ram_states)
         if (self.freeze_interval > 0 and
             self.update_counter % self.freeze_interval == 0):
             self.reset_q_hat()
@@ -229,7 +232,7 @@ class DeepQLearner:
         self.update_counter += 1
         return np.sqrt(loss)
 
-    def q_vals(self, state, ram_state=np.zeros((128,))):
+    def q_vals(self, state, ram_state):
         """
         To predict the q-values of the moves, it needs to push the states in a form of a batch to the network, and return the first element of the result.
         """
@@ -243,7 +246,7 @@ class DeepQLearner:
         self.ram_states_shared.set_value(ram_states)
         return self._q_vals()[0]
 
-    def choose_action(self, state, epsilon, ram_state=np.zeros((128,))):
+    def choose_action(self, state, epsilon, ram_state):
         """
         Choosing action to perform when in testing mode.
         """
