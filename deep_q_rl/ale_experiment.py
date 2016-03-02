@@ -139,7 +139,7 @@ class ALEExperiment(object):
 
         start_lives = self.ale.lives()
 
-        action = self.agent.start_episode(self.get_observation()) # TODO: add self.current_ram
+        action = self.agent.start_episode(self.get_observation(), self.current_ram)
         num_steps = 0
         while True:
             reward = self._step(self.min_action_set[action])
@@ -152,7 +152,7 @@ class ALEExperiment(object):
                 self.agent.end_episode(reward, terminal)
                 break
 
-            action = self.agent.step(reward, self.get_observation()) # TODO: add self.current_ram
+            action = self.agent.step(reward, self.get_observation(), self.current_ram)
         return terminal, num_steps
 
 

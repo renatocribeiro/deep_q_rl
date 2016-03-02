@@ -13,7 +13,7 @@ class DataSet(object):
 actions, and rewards.
 
     """
-    def __init__(self, width, height, rng, max_steps=1000, phi_length=4):
+    def __init__(self, width, height, rng, max_steps=1000, phi_length=4, ram_size=128):
         """Construct a DataSet.
 
         Arguments:
@@ -33,22 +33,25 @@ actions, and rewards.
         self.max_steps = max_steps
         self.phi_length = phi_length
         self.rng = rng
+        self.ram_size = ram_size
 
         # Allocate the circular buffers and indices.
         self.imgs = np.zeros((max_steps, height, width), dtype='uint8')
         self.actions = np.zeros(max_steps, dtype='int32')
         self.rewards = np.zeros(max_steps, dtype=floatX)
         self.terminal = np.zeros(max_steps, dtype='bool')
+        self.rams = np.zeros((max_steps, ram_size), dtype='uint8')
 
         self.bottom = 0
         self.top = 0
         self.size = 0
 
-    def add_sample(self, img, action, reward, terminal):
+    def add_sample(self, img, action, reward, terminal, ram):
         """Add a time step record.
 
         Arguments:
             img -- observed image
+            ram -- observed ram state
             action -- action chosen by the agent
             reward -- reward received after taking the action
             terminal -- boolean indicating whether the episode ended
@@ -58,6 +61,7 @@ actions, and rewards.
         self.actions[self.top] = action
         self.rewards[self.top] = reward
         self.terminal[self.top] = terminal
+        self.rams[self.top] = ram
 
         if self.size == self.max_steps:
             self.bottom = (self.bottom + 1) % self.max_steps
@@ -91,8 +95,7 @@ actions, and rewards.
         return phi
 
     def random_batch(self, batch_size):
-        """Return corresponding states, actions, rewards, terminal status, and
-next_states for batch_size randomly chosen state transitions.
+        """Return corresponding states, rams, actions, rewards, terminal status, next_states and next_rams for batch_size randomly chosen state transitions.
 
         """
         # Allocate the response.
@@ -101,6 +104,7 @@ next_states for batch_size randomly chosen state transitions.
                            self.height,
                            self.width),
                           dtype='uint8')
+        rams = np.zeros((batch_size, self.ram_size), dtype='uint8')
         actions = np.zeros((batch_size, 1), dtype='int32')
         rewards = np.zeros((batch_size, 1), dtype=floatX)
         terminal = np.zeros((batch_size, 1), dtype='bool')
@@ -109,6 +113,7 @@ next_states for batch_size randomly chosen state transitions.
                                 self.height,
                                 self.width),
                                dtype='uint8')
+        next_rams = np.zeros((batch_size, self.ram_size), dtype='uint8')
 
         count = 0
         while count < batch_size:
@@ -132,18 +137,21 @@ next_states for batch_size randomly chosen state transitions.
 
             # Add the state transition to the response.
             states[count] = self.imgs.take(initial_indices, axis=0, mode='wrap')
+            rams[count] = self.rams.take(end_index, axis=0, mode='wrap')
             actions[count] = self.actions.take(end_index, mode='wrap')
             rewards[count] = self.rewards.take(end_index, mode='wrap')
             terminal[count] = self.terminal.take(end_index, mode='wrap')
             next_states[count] = self.imgs.take(transition_indices,
                                                 axis=0,
                                                 mode='wrap')
+            next_rams[count] = self.rams.take(end_index+1,
+                axis=0, mode='wrap')
             count += 1
 
-        return states, actions, rewards, next_states, terminal
+        return states, rams, actions, rewards, next_states, next_rams, terminal
 
 
-# TESTING CODE BELOW THIS POINT...
+# TESTING CODE BELOW THIS POINT... TODO: add ram to this code
 
 def simple_tests():
     np.random.seed(222)

@@ -86,6 +86,7 @@ class NeuralAgent(object):
         # will be used to store states and actions.
         self.last_img = None
         self.last_action = None
+        self.last_ram = None
 
     def _open_results_file(self):
         logging.info("OPENING " + self.exp_dir + '/results.csv')
@@ -112,7 +113,7 @@ class NeuralAgent(object):
         self.learning_file.write(out)
         self.learning_file.flush()
 
-    def start_episode(self, observation):
+    def start_episode(self, observation, ram):
         """
         This method is called once at the beginning of each episode.
         No reward is provided, because reward is only available after
@@ -120,6 +121,7 @@ class NeuralAgent(object):
 
         Arguments:
            observation - height x width numpy array
+           ram         - state of the ram numpy array of size 128
 
         Returns:
            An integer action
@@ -138,6 +140,7 @@ class NeuralAgent(object):
         self.last_action = return_action
 
         self.last_img = observation
+        self.last_ram = ram
 
         return return_action
 
@@ -154,7 +157,7 @@ class NeuralAgent(object):
             plt.grid(color='r', linestyle='-', linewidth=1)
         plt.show()
 
-    def step(self, reward, observation):
+    def step(self, reward, observation, ram):
         """
         This method is called each time step.
 
@@ -162,7 +165,7 @@ class NeuralAgent(object):
            reward      - Real valued reward.
            observation - A height x width numpy array,
                          denoting an image to pass to the network
-           TODO: ram   - RAM_SIZE numpy vector, denoting the state of the ram
+           ram         - RAM_SIZE numpy vector, denoting the state of the ram
 
         Returns:
            An integer action.
@@ -175,7 +178,7 @@ class NeuralAgent(object):
         if self.testing:
             self.episode_reward += reward
             action = self._choose_action(self.test_data_set, .05,
-                                         observation, np.clip(reward, -1, 1))
+                                         observation, ram, np.clip(reward, -1, 1))
 
         #NOT TESTING---------------------------
         else:
@@ -185,7 +188,7 @@ class NeuralAgent(object):
                                    self.epsilon - self.epsilon_rate)
 
                 action = self._choose_action(self.data_set, self.epsilon,
-                                             observation,
+                                             observation, ram,
                                              np.clip(reward, -1, 1))
 
                 if self.step_counter % self.update_frequency == 0:
@@ -195,26 +198,28 @@ class NeuralAgent(object):
 
             else: # Still gathering initial random data...
                 action = self._choose_action(self.data_set, self.epsilon,
-                                             observation,
+                                             observation, ram,
                                              np.clip(reward, -1, 1))
 
 
         self.last_action = action
         self.last_img = observation
+        self.last_ram = ram
 
         return action
 
-    def _choose_action(self, data_set, epsilon, cur_img, reward):
+    def _choose_action(self, data_set, epsilon, cur_img, cur_ram, reward):
         """
         Add the most recent data to the data set and choose
         an action based on the current policy.
         cur_img - current observation to which action should be taken
+        cur_ram - current ram state
         """
 
-        data_set.add_sample(self.last_img, self.last_action, reward, False)
+        data_set.add_sample(self.last_img, self.last_action, reward, False, self.last_ram)
         if self.step_counter >= self.phi_length:
             phi = data_set.phi(cur_img)
-            action = self.network.choose_action(phi, epsilon)
+            action = self.network.choose_action(phi, epsilon, cur_ram)
         else:
             action = self.rng.randint(0, self.num_actions)
 
@@ -226,11 +231,11 @@ class NeuralAgent(object):
         May be overridden if a subclass needs to train the network
         differently.
         """
-        states, actions, rewards, next_states, terminals = \
+        states, rams, actions, rewards, next_states, next_rams, terminals = \
                                 self.data_set.random_batch(
                                     self.network.batch_size)
         return self.network.train(states, actions, rewards,
-                                  next_states, terminals)
+                                  next_states, terminals, rams, next_rams)
 
 
     def end_episode(self, reward, terminal=True):
@@ -261,7 +266,7 @@ class NeuralAgent(object):
             self.data_set.add_sample(self.last_img,
                                      self.last_action,
                                      np.clip(reward, -1, 1),
-                                     True)
+                                     True, self.last_ram)
 
             logging.info("steps/second: {:.2f}".format(\
                             self.step_counter/total_time))
