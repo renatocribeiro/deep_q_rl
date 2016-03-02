@@ -80,6 +80,7 @@ class NeuralAgent(object):
         self.batch_counter = 0
 
         self.holdout_data = None
+        self.holdout_ram = None
 
         # In order to add an element to the data set we need the
         # previous state and action and the current reward.  These
@@ -293,13 +294,14 @@ class NeuralAgent(object):
         holdout_size = 3200
 
         if self.holdout_data is None and len(self.data_set) > holdout_size:
-            self.holdout_data = self.data_set.random_batch(holdout_size)[0]
+            self.holdout_data, self.holdout_ram, _, _, _, _, _ =\
+                self.data_set.random_batch(holdout_size)
 
         holdout_sum = 0
         if self.holdout_data is not None:
             for i in range(holdout_size):
                 holdout_sum += np.max(
-                    self.network.q_vals(self.holdout_data[i, ...]))
+                    self.network.q_vals(self.holdout_data[i, ...], self.holdout_ram[i, ...]))
 
         self._update_results_file(epoch, self.episode_counter,
                                   holdout_sum / holdout_size)
