@@ -94,19 +94,19 @@ class DeepQLearner:
 
         q_vals = lasagne.layers.get_output(self.l_out,
             { self.l_in: (states / input_scale),
-              self.l_ram_in: ram_states })
+              self.l_ram_in: np.zeros((batch_size, self.RAM_SIZE)) })
         
         if self.freeze_interval > 0:
             next_q_vals = lasagne.layers.get_output(self.next_l_out,
                 {
                   self.l_in: (next_states / input_scale),
-                  self.l_ram_in: next_ram_states,
+                  self.l_ram_in: np.zeros((batch_size, self.RAM_SIZE))
                 })
         else:
             next_q_vals = lasagne.layers.get_output(self.l_out,
                 {
                   self.l_in: (next_states / input_scale),
-                  self.l_ram_in: next_ram_states,
+                  self.l_ram_in: np.zeros((batch_size, self.RAM_SIZE)),
                 })
             next_q_vals = theano.gradient.disconnected_grad(next_q_vals)
 
@@ -165,12 +165,13 @@ class DeepQLearner:
                                                      self.momentum)
 
         self._train = theano.function([], [loss, q_vals], updates=updates,
-                                      givens=givens)
+                                      givens=givens, on_unused_input='warn')
         self._q_vals = theano.function([], q_vals,
                                        givens={
                                          states: self.states_shared,
                                          ram_states: self.ram_states_shared,
-                                         })
+                                         },
+                                       on_unused_input='warn')
 
     def build_network(self, network_type, input_width, input_height,
                       output_dim, num_frames, batch_size):
