@@ -12,6 +12,7 @@ but using a CPU if no gpu is available.
 import launcher
 import sys
 
+
 class Defaults:
     # ----------------------
     # Experiment Parameters
@@ -35,7 +36,7 @@ class Defaults:
     BATCH_ACCUMULATOR = 'mean'
     LEARNING_RATE = .0002
     DISCOUNT = .95
-    RMS_DECAY = .99 # (Rho)
+    RMS_DECAY = .99  # (Rho)
     RMS_EPSILON = 1e-6
     MOMENTUM = 0
     CLIP_DELTA = 0
@@ -44,7 +45,7 @@ class Defaults:
     EPSILON_DECAY = 1000000
     PHI_LENGTH = 4
     UPDATE_FREQUENCY = 1
-    REPLAY_MEMORY_SIZE = 100000 # I changed that 10^6 -> 10^5
+    REPLAY_MEMORY_SIZE = 1000000
     BATCH_SIZE = 32
     NETWORK_TYPE = "sygi"
     FREEZE_INTERVAL = -1
