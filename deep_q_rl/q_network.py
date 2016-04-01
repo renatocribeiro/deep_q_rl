@@ -94,20 +94,20 @@ class DeepQLearner:
 
         q_vals = lasagne.layers.get_output(self.l_out,
             {
-            #    self.l_in: (states / input_scale),
+                self.l_in: (states / input_scale),
                 self.l_ram_in: (ram_states / 256.0)
             })
         
         if self.freeze_interval > 0:
             next_q_vals = lasagne.layers.get_output(self.next_l_out,
                 {
-            #      self.l_in: (next_states / input_scale),
+                  self.l_in: (next_states / input_scale),
                   self.l_ram_in: (next_ram_states / 256.0)
                 })
         else:
             next_q_vals = lasagne.layers.get_output(self.l_out,
                 {
-            #      self.l_in: (next_states / input_scale),
+                  self.l_in: (next_states / input_scale),
                   self.l_ram_in: (next_ram_states / 256.0),
                 })
             next_q_vals = theano.gradient.disconnected_grad(next_q_vals)
@@ -386,7 +386,6 @@ class DeepQLearner:
 
         return l_out
 
-
     def build_sygi_network(self, input_width, input_height, output_dim,
                            num_frames, batch_size):
         """
@@ -397,7 +396,7 @@ class DeepQLearner:
         )
 
         self.l_ram_in = lasagne.layers.InputLayer(
-            shape=(batch_size, self.RAM_SIZE) # taking the ram state only from the first frame
+            shape=(batch_size, self.RAM_SIZE)  # taking the ram state only from the first frame
         )
 
         l_conv1 = lasagne.layers.Conv2DLayer(
