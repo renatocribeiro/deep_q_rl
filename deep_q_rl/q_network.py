@@ -271,12 +271,12 @@ class DeepQLearner:
         """
         from lasagne.layers import cuda_convnet
 
-        l_in = lasagne.layers.InputLayer(
+        self.l_in = lasagne.layers.InputLayer(
             shape=(batch_size, num_frames, input_width, input_height)
         )
 
         l_conv1 = cuda_convnet.Conv2DCCLayer(
-            l_in,
+            self.l_in,
             num_filters=32,
             filter_size=(8, 8),
             stride=(4, 4),
@@ -485,12 +485,12 @@ class DeepQLearner:
         Build a network consistent with the 2013 NIPS paper.
         """
         from lasagne.layers import cuda_convnet
-        l_in = lasagne.layers.InputLayer(
+        self.l_in = lasagne.layers.InputLayer(
             shape=(batch_size, num_frames, input_width, input_height)
         )
 
         l_conv1 = cuda_convnet.Conv2DCCLayer(
-            l_in,
+            self.l_in,
             num_filters=16,
             filter_size=(8, 8),
             stride=(4, 4),
