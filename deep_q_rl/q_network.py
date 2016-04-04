@@ -94,20 +94,20 @@ class DeepQLearner:
 
         q_vals = lasagne.layers.get_output(self.l_out,
             {
-                self.l_in: (states / input_scale),
+       #         self.l_in: (states / input_scale),
                 self.l_ram_in: (ram_states / 256.0)
             })
         
         if self.freeze_interval > 0:
             next_q_vals = lasagne.layers.get_output(self.next_l_out,
                 {
-                  self.l_in: (next_states / input_scale),
+       #           self.l_in: (next_states / input_scale),
                   self.l_ram_in: (next_ram_states / 256.0)
                 })
         else:
             next_q_vals = lasagne.layers.get_output(self.l_out,
                 {
-                  self.l_in: (next_states / input_scale),
+       #           self.l_in: (next_states / input_scale),
                   self.l_ram_in: (next_ram_states / 256.0),
                 })
             next_q_vals = theano.gradient.disconnected_grad(next_q_vals)
@@ -141,7 +141,7 @@ class DeepQLearner:
         else:
             raise ValueError("Bad accumulator: {}".format(batch_accumulator))
 
-        params = lasagne.layers.helper.get_all_params(self.l_out)  
+        params = lasagne.layers.helper.get_all_params(self.l_out)
         givens = {
             states: self.states_shared,
             next_states: self.next_states_shared,
@@ -200,6 +200,9 @@ class DeepQLearner:
         elif network_type == "just_ram":
             return self.build_ram_network(input_width, input_height, output_dim,
                                           num_frames, batch_size)
+        elif network_type == "ram_dropout":
+            return self.build_ram_dropout_network(input_width, input_height,
+                    output_dim, num_frames, batch_size)
         else:
             raise ValueError("Unrecognized network: {}".format(network_type))
 
@@ -470,6 +473,42 @@ class DeepQLearner:
 
         l_out = lasagne.layers.DenseLayer(
             l_hidden2,
+            num_units=output_dim,
+            nonlinearity=None,
+            W=lasagne.init.HeUniform(),
+            b=lasagne.init.Constant(.1)
+        )
+
+        return l_out
+
+    def build_ram_dropout_network(self, input_width, input_height, output_dim,
+            num_frames, batch_size):
+        """
+        Build a network using only the information from the ram.
+        """
+        self.l_ram_in = lasagne.layers.InputLayer(
+            shape=(batch_size, self.RAM_SIZE)
+        )
+
+
+        l_hidden1 = lasagne.layers.DenseLayer(
+            lasagne.layers.dropout(self.l_ram_in),
+            num_units=self.RAM_SIZE,
+            nonlinearity=lasagne.nonlinearities.rectify,
+            W=lasagne.init.HeUniform(),
+            b=lasagne.init.Constant(.1)
+        )
+
+        l_hidden2 = lasagne.layers.DenseLayer(
+            lasagne.layers.dropout(l_hidden1),
+            num_units=self.RAM_SIZE,
+            nonlinearity=lasagne.nonlinearities.rectify,
+            W=lasagne.init.HeUniform(),
+            b=lasagne.init.Constant(.1)
+        )
+
+        l_out = lasagne.layers.DenseLayer(
+            lasagne.layers.dropout(l_hidden2),
             num_units=output_dim,
             nonlinearity=None,
             W=lasagne.init.HeUniform(),
