@@ -105,7 +105,7 @@ class ALEExperiment(object):
         buffer
 
         """
-        reward = self.ale.act(action)
+        reward = self.ale.act(action) + 1 # warning - this changes regular behaviour
         index = self.buffer_count % self.buffer_length
 
         self.ale.getScreenGrayscale(self.screen_buffer[index, ...])
