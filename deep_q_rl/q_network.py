@@ -44,7 +44,7 @@ class DeepQLearner:
         self.clip_delta = clip_delta
         self.freeze_interval = freeze_interval
         self.rng = rng
-        self.RAM_SIZE = 128
+        self.RAM_SIZE = 128 * 4  # times frame skip
         np.set_printoptions(threshold='nan')
 
         lasagne.random.set_rng(self.rng)

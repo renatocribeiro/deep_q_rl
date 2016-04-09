@@ -37,7 +37,7 @@ class ALEExperiment(object):
                                        self.height, self.width),
                                       dtype=np.uint8)
         self.ram_size = 128 # TODO: pass as an argument
-        self.current_ram = np.empty((self.ram_size,), dtype=np.uint8)
+        self.current_ram = np.empty((self.frame_skip * self.ram_size,), dtype=np.uint8)
 
         self.terminal_lol = False # Most recent episode ended on a loss of life
         self.max_start_nullops = max_start_nullops
@@ -99,7 +99,7 @@ class ALEExperiment(object):
         self._act(0)
 
 
-    def _act(self, action):
+    def _act(self, action, index=0):
         """Perform the indicated action for a single frame, return the
         resulting reward and store the resulting screen image in the
         buffer
@@ -109,7 +109,8 @@ class ALEExperiment(object):
         index = self.buffer_count % self.buffer_length
 
         self.ale.getScreenGrayscale(self.screen_buffer[index, ...])
-        self.current_ram = self.ale.getRAM()
+        self.current_ram[index * self.ram_size:(index+1)*self.ram_size] =\
+            self.ale.getRAM()
 
         self.buffer_count += 1
         return reward
@@ -118,8 +119,8 @@ class ALEExperiment(object):
         """ Repeat one action the appopriate number of times and return
         the summed reward. """
         reward = 0
-        for _ in range(self.frame_skip):
-            reward += self._act(action)
+        for i in range(self.frame_skip):
+            reward += self._act(action, i)
 
         return reward
 
