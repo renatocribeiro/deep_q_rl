@@ -474,7 +474,7 @@ class DeepQLearner:
 
         l_hidden2 = lasagne.layers.DenseLayer(
             l_hidden1,
-            num_units=self.RAM_SIZE,
+            num_units=self.RAM_SIZE/4,
             nonlinearity=lasagne.nonlinearities.rectify,
             W=lasagne.init.HeUniform(),
             b=lasagne.init.Constant(.1)
