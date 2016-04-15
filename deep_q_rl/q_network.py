@@ -92,29 +92,34 @@ class DeepQLearner:
             np.zeros((batch_size, 1), dtype='int32'),
             broadcastable=(False, True))
 
+        self.test_shared = theano.shared(True)
+
         q_vals = lasagne.layers.get_output(self.l_out,
             {
-                self.l_in: (states / input_scale),
-                self.l_ram_in: 
+#                self.l_in: (states / input_scale),
+                self.l_ram_in:
                 (ram_states / 256.0)
-            }
+            },
+            deterministic=self.test_shared
         )
         
         if self.freeze_interval > 0:
             next_q_vals = lasagne.layers.get_output(self.next_l_out,
                 {
-                  self.l_in: (next_states / input_scale),
+#                  self.l_in: (next_states / input_scale),
                   self.l_ram_in:
                   (next_ram_states / 256.0)
-            }
+                },
+                deterministic=self.test_shared
             )
         else:
             next_q_vals = lasagne.layers.get_output(self.l_out,
                 {
-                  self.l_in: (next_states / input_scale),
+#                  self.l_in: (next_states / input_scale),
                   self.l_ram_in:
                   (next_ram_states / 256.0),
-                }
+                },
+                deterministic=self.test_shared
                 )
             next_q_vals = theano.gradient.disconnected_grad(next_q_vals)
 
@@ -246,6 +251,7 @@ class DeepQLearner:
         self.terminals_shared.set_value(terminals)
         self.ram_states_shared.set_value(ram_states)
         self.next_ram_states_shared.set_value(next_ram_states)
+        self.test_shared.set_value(False)
         if (self.freeze_interval > 0 and
             self.update_counter % self.freeze_interval == 0):
             self.reset_q_hat()
@@ -265,6 +271,7 @@ class DeepQLearner:
 
         self.states_shared.set_value(states)
         self.ram_states_shared.set_value(ram_states)
+        self.test_shared.set_value(True)
         return self._q_vals()[0]
 
     def choose_action(self, state, epsilon, ram_state):
