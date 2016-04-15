@@ -28,7 +28,7 @@ class DeepQLearner:
     def __init__(self, input_width, input_height, num_actions,
                  num_frames, discount, learning_rate, rho,
                  rms_epsilon, momentum, clip_delta, freeze_interval,
-                 batch_size, network_type, update_rule,
+                 use_double, batch_size, network_type, update_rule,
                  batch_accumulator, rng, input_scale=255.0):
 
         self.input_width = input_width
@@ -43,9 +43,15 @@ class DeepQLearner:
         self.momentum = momentum
         self.clip_delta = clip_delta
         self.freeze_interval = freeze_interval
+        self.use_double = use_double
         self.rng = rng
         self.RAM_SIZE = 128
         np.set_printoptions(threshold='nan')
+
+        # Using Double DQN is pointless without periodic freezing
+        if self.use_double:
+            assert self.freeze_interval > 0
+            # pass
 
         lasagne.random.set_rng(self.rng)
 
@@ -101,6 +107,7 @@ class DeepQLearner:
         )
         
         if self.freeze_interval > 0:
+            # Nature. If using periodic freezing
             next_q_vals = lasagne.layers.get_output(self.next_l_out,
                 {
                   self.l_in: (next_states / input_scale),
@@ -109,6 +116,7 @@ class DeepQLearner:
             }
             )
         else:
+            # NIPS
             next_q_vals = lasagne.layers.get_output(self.l_out,
                 {
                   self.l_in: (next_states / input_scale),
@@ -118,9 +126,16 @@ class DeepQLearner:
                 )
             next_q_vals = theano.gradient.disconnected_grad(next_q_vals)
 
-        target = (rewards +
-                  (T.ones_like(terminals) - terminals) *
-                  self.discount * T.max(next_q_vals, axis=1, keepdims=True))
+        if self.use_double:
+            maxaction = T.argmax(q_vals, axis=1, keepdims=False)
+            temptargets = next_q_vals[T.arange(batch_size),maxaction].reshape((-1, 1))
+            target = (rewards +
+                      (T.ones_like(terminals) - terminals) *
+                      self.discount * temptargets)
+        else:
+            target = (rewards +
+                      (T.ones_like(terminals) - terminals) *
+                      self.discount * T.max(next_q_vals, axis=1, keepdims=True))
         diff = target - q_vals[T.arange(batch_size),
                                actions.reshape((-1,))].reshape((-1, 1))
 
@@ -172,14 +187,44 @@ class DeepQLearner:
             updates = lasagne.updates.apply_momentum(updates, None,
                                                      self.momentum)
 
-        self._train = theano.function([], [loss, q_vals], updates=updates,
-                                      givens=givens, on_unused_input='warn')
-        self._q_vals = theano.function([], q_vals,
-                                       givens={
-                                         states: self.states_shared,
-                                         ram_states: self.ram_states_shared,
-                                         },
-                                       on_unused_input='warn')
+        def inspect_inputs(i, node, fn):
+            if ('maxand' not in str(node).lower() and '12345' not in str(node)):
+                return
+            print i, node, "input(s) value(s):", [input[0] for input in fn.inputs],
+            raw_input('press enter')
+
+        def inspect_outputs(i, node, fn):
+            if ('maxand' not in str(node).lower() and '12345' not in str(node)):
+                return
+            if '12345' in str(node):
+                print "output(s) value(s):", [np.asarray(output[0]) for output in fn.outputs]
+            else:
+                print "output(s) value(s):", [output[0] for output in fn.outputs]
+            raw_input('press enter')
+
+        if False:
+            self._train = theano.function([], [loss, q_vals], updates=updates,
+                                          givens=givens, mode=theano.compile.MonitorMode(
+                            pre_func=inspect_inputs,
+                            post_func=inspect_outputs), on_unused_input='warn')
+            theano.printing.debugprint(target)
+        else:
+            self._train = theano.function([], [loss, q_vals], updates=updates,
+                                          givens=givens, on_unused_input='warn')
+        if False:
+            self._q_vals = theano.function([], q_vals,
+                                           givens={
+                                               states: self.states_shared,
+                                               ram_states: self.ram_states_shared,
+                                           }, mode=theano.compile.MonitorMode(
+                            pre_func=inspect_inputs,
+                            post_func=inspect_outputs), on_unused_input='warn')
+        else:
+            self._q_vals = theano.function([], q_vals,
+                                           givens={
+                                               states: self.states_shared,
+                                               ram_states: self.ram_states_shared,
+                                           }, on_unused_input='warn')
 
     def build_network(self, network_type, input_width, input_height,
                       output_dim, num_frames, batch_size):
@@ -799,7 +844,7 @@ class DeepQLearner:
         return l_out
 
 def main():
-    net = DeepQLearner(84, 84, 16, 4, .99, .00025, .95, .95, 10000,
+    net = DeepQLearner(84, 84, 16, 4, .99, .00025, .95, .95, 10000, False,
                        32, 'nature_cuda')
 
 
