@@ -214,9 +214,11 @@ class DeepQLearner:
         elif network_type == "big_joint":
             return self.build_big_joint_network(input_width, input_height,
                                                 output_dim, num_frames, batch_size)
-
         elif network_type == "ram_dropout":
             return self.build_ram_dropout_network(input_width, input_height,
+                    output_dim, num_frames, batch_size)
+        elif network_type == "big_dropout":
+            return self.build_big_dropout_network(input_width, input_height,
                     output_dim, num_frames, batch_size)
         elif network_type == "big_ram":
             return self.build_big_ram_network(input_width, input_height,
@@ -588,6 +590,58 @@ class DeepQLearner:
         )
 
         return l_out
+
+    def build_big_dropout_network(self, input_width, input_height, output_dim,
+            num_frames, batch_size, dropout_level=0.1):
+        """
+        Build deeper network with just ram input and dropout
+        """
+        self.l_ram_in = lasagne.layers.InputLayer(
+            shape=(batch_size, self.RAM_SIZE)
+        )
+
+        l_hidden1 = lasagne.layers.DenseLayer(
+            lasagne.layers.dropout(self.l_ram_in, p=dropout_level),
+            num_units=self.RAM_SIZE,
+            nonlinearity=lasagne.nonlinearities.rectify,
+            W=lasagne.init.HeUniform(),
+            b=lasagne.init.Constant(.1)
+        )
+
+        l_hidden2 = lasagne.layers.DenseLayer(
+            lasagne.layers.dropout(l_hidden1, p=dropout_level),
+            num_units=self.RAM_SIZE,
+            nonlinearity=lasagne.nonlinearities.rectify,
+            W=lasagne.init.HeUniform(),
+            b=lasagne.init.Constant(.1)
+        )
+
+        l_hidden3 = lasagne.layers.DenseLayer(
+            lasagne.layers.dropout(l_hidden2, p=dropout_level),
+            num_units=self.RAM_SIZE,
+            nonlinearity=lasagne.nonlinearities.rectify,
+            W=lasagne.init.HeUniform(),
+            b=lasagne.init.Constant(.1)
+        )
+
+        l_hidden4 = lasagne.layers.DenseLayer(
+            lasagne.layers.dropout(l_hidden3, p=dropout_level),
+            num_units=self.RAM_SIZE,
+            nonlinearity=lasagne.nonlinearities.rectify,
+            W=lasagne.init.HeUniform(),
+            b=lasagne.init.Constant(.1)
+        )
+
+        l_out = lasagne.layers.DenseLayer(
+            l_hidden4,
+            num_units=output_dim,
+            nonlinearity=None,
+            W=lasagne.init.HeUniform(),
+            b=lasagne.init.Constant(.1)
+        )
+
+        return l_out
+
 
     def build_big_joint_network(self, input_width, input_height, output_dim,
                                 num_frames, batch_size):
