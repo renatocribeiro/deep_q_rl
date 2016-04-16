@@ -253,6 +253,7 @@ def launch(args, defaults, description):
                                               rng)
 
 
+    print parameters
     experiment.run()
 
 
