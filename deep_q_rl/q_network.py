@@ -103,30 +103,30 @@ class DeepQLearner:
             broadcastable=(False, True))
 
         q_vals = lasagne.layers.get_output(self.l_out,
-            {
-                self.l_in: (states / input_scale),
-                self.l_ram_in: 
+#            {
+#                self.l_in: (states / input_scale),
+#                self.l_ram_in: 
                 (ram_states / 256.0)
-            }
+#            }
         )
         
         if self.freeze_interval > 0:
             # Nature. If using periodic freezing
             next_q_vals = lasagne.layers.get_output(self.next_l_out,
-                {
-                  self.l_in: (next_states / input_scale),
-                  self.l_ram_in:
+#                {
+#                  self.l_in: (next_states / input_scale),
+#                  self.l_ram_in:
                   (next_ram_states / 256.0)
-            }
+#            }
             )
         else:
             # NIPS
             next_q_vals = lasagne.layers.get_output(self.l_out,
-                {
-                  self.l_in: (next_states / input_scale),
-                  self.l_ram_in:
+#                {
+#                  self.l_in: (next_states / input_scale),
+#                  self.l_ram_in:
                   (next_ram_states / 256.0),
-                }
+#                }
                 )
             next_q_vals = theano.gradient.disconnected_grad(next_q_vals)
 
