@@ -49,6 +49,9 @@ class NeuralAgent(object):
         except OSError:
             os.makedirs(self.exp_dir)
 
+
+        self.save_info_file()
+
         self.num_actions = self.network.num_actions
 
 
@@ -100,6 +103,14 @@ class NeuralAgent(object):
         self.learning_file = open(self.exp_dir + '/learning.csv', 'w', 0)
         self.learning_file.write('mean_loss,epsilon\n')
         self.learning_file.flush()
+
+    def save_info_file(self):
+        f = open(self.exp_dir + "/info", 'w')
+        f.write('game = ' + self.exp_pref + '\n')
+        f.write('network type = ' + self.network.network_type + '\n')
+        f.write('replay memory size = ' + str(self.replay_memory_size) + '\n')
+        f.flush()
+        f.close()
 
     def _update_results_file(self, epoch, num_episodes, holdout_sum):
         out = "{},{},{},{},{}\n".format(epoch, num_episodes, self.total_reward,
@@ -269,16 +280,12 @@ class NeuralAgent(object):
                                      np.clip(reward, -1, 1),
                                      True, self.last_ram)
 
-            logging.info("steps/second: {:.2f}".format(\
-                            self.step_counter/total_time))
-
             if self.batch_counter > 0:
                 self._update_learning_file()
-                logging.info("average loss: {:.4f}".format(\
-                                np.mean(self.loss_averages)))
-
 
     def finish_epoch(self, epoch):
+        if (epoch % 4) != 0:
+            return
         net_file = open(self.exp_dir + '/network_file_' + str(epoch) + \
                         '.pkl', 'w')
         cPickle.dump(self.network, net_file, -1)

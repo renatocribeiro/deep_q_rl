@@ -45,11 +45,16 @@ class DeepQLearner:
         self.freeze_interval = freeze_interval
         self.rng = rng
         self.RAM_SIZE = 128 * 4  # times frame skip
+        self.network_type = network_type
+
         np.set_printoptions(threshold='nan')
 
         lasagne.random.set_rng(self.rng)
 
         self.update_counter = 0
+
+        self.l_in = None
+        self.l_ram_in = None
 
         self.l_out = self.build_network(network_type, input_width, input_height,
                                         num_actions, num_frames, batch_size)
