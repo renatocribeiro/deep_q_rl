@@ -19,6 +19,8 @@ import theano
 import theano.tensor as T
 from updates import deepmind_rmsprop
 
+from lasagne.regularization import regularize_network_params, l2
+
 
 class DeepQLearner:
     """
@@ -57,6 +59,9 @@ class DeepQLearner:
 
         self.l_out = self.build_network(network_type, input_width, input_height,
                                         num_actions, num_frames, batch_size)
+
+        l2_penalty = regularize_network_params(self.l_out, l2)
+
         if self.freeze_interval > 0:
             self.next_l_out = self.build_network(network_type, input_width,
                                                  input_height, num_actions,
@@ -150,6 +155,8 @@ class DeepQLearner:
             loss = T.mean(loss)
         else:
             raise ValueError("Bad accumulator: {}".format(batch_accumulator))
+
+        loss = loss + 0.01 * l2_penalty
 
         params = lasagne.layers.helper.get_all_params(self.l_out)
         givens = {
