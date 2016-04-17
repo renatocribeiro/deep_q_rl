@@ -11,7 +11,7 @@ and
 
 Mnih, Volodymyr, et al. "Human-level control through deep reinforcement learning." Nature 518.7540 (2015): 529-533.
 
-We use the DQN algorithm to learn the strategies for Atari games from the RAM state of the machine.
+We use the DQN algorithm to learn the strategies for Atari games using the RAM state of the machine.
 
 # Dependencies
 
@@ -26,8 +26,41 @@ The script `dep_script.sh` can be used to install all dependencies under Ubuntu.
 
 
 # Running
+We've done a number of experiments with models that use RAM state. They don't fully share the code, so we split them in branches. To re-run them, you can use our scripts, which are located in the main directory of the repository.
 
-TODO: describe all the experiments and how to run the code.
+## Network types
+TODO: describe shortly network types here
+
+## Frame skip
+Evaluation of a model using a different frame skip:
+```
+./frameskip.sh <rom name> <network type> <frameskip>, e.g:
+./frameskip.sh breakout just_ram 8
+```
+
+## Dropout
+We added dropout to the two ram-only networks. You can run it as:
+```
+./dropout.sh <rom name> ram_dropout
+OR
+./dropout <rom name> big_dropout
+```
+
+`ram_dropout` is a network with two dense hidden layers, `big_dropout` with 4.
+
+## Weight-decay
+You can try the models with l2-regularization using:
+```
+./weight-decay.sh <rom name> <network type>, e.g:
+./weight-decay.sh breakout big_ram
+```
+
+## Unrolling frameskip (TODO?)
+You can try passing a ram of all the frames in-between action changes instead of just at the last frame by:
+```
+./unroll-frameskip.sh <rom name>
+```
+It will run a `just_ram` network (with 2 hidden relu layers).
 
 # See Also
 
