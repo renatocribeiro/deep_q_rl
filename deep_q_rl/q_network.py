@@ -204,13 +204,13 @@ class DeepQLearner:
         elif network_type == "linear":
             return self.build_linear_network(input_width, input_height,
                                              output_dim, num_frames, batch_size)
-        elif network_type == "sygi":
-            return self.build_sygi_network(input_width, input_height,
+        elif network_type == "mixed_ram":
+            return self.build_mixed_ram_network(input_width, input_height,
                                            output_dim, num_frames, batch_size)
         elif network_type == "just_ram":
             return self.build_ram_network(input_width, input_height, output_dim,
                                           num_frames, batch_size)
-        elif network_type == "big_joint":
+        elif network_type == "big_mixed_ram":
             return self.build_big_joint_network(input_width, input_height,
                                                 output_dim, num_frames, batch_size)
 
@@ -406,7 +406,7 @@ class DeepQLearner:
 
         return l_out
 
-    def build_sygi_network(self, input_width, input_height, output_dim,
+    def build_mixed_ram_network(self, input_width, input_height, output_dim,
                            num_frames, batch_size):
         """
         Build a small, simple network that doesn't enforce usage of GPU.
@@ -589,7 +589,7 @@ class DeepQLearner:
     def build_big_joint_network(self, input_width, input_height, output_dim,
                                 num_frames, batch_size):
         """
-        NIPS + big ram
+        NIPS + deeper ram
         """
         self.l_in = lasagne.layers.InputLayer(
             shape=(batch_size, num_frames, input_width, input_height)
