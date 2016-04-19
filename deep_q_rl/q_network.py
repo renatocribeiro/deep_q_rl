@@ -560,7 +560,7 @@ class DeepQLearner:
         return l_out
 
     def build_ram_dropout_network(self, input_width, input_height, output_dim,
-            num_frames, batch_size):
+            num_frames, batch_size, dropout_level=0.1):
         """
         Build a network using only the information from the ram.
         """
@@ -570,7 +570,7 @@ class DeepQLearner:
 
 
         l_hidden1 = lasagne.layers.DenseLayer(
-            lasagne.layers.dropout(self.l_ram_in),
+            lasagne.layers.dropout(self.l_ram_in, p=dropout_level),
             num_units=self.RAM_SIZE,
             nonlinearity=lasagne.nonlinearities.rectify,
             W=lasagne.init.HeUniform(),
@@ -578,7 +578,7 @@ class DeepQLearner:
         )
 
         l_hidden2 = lasagne.layers.DenseLayer(
-            lasagne.layers.dropout(l_hidden1),
+            lasagne.layers.dropout(l_hidden1, p=dropout_level),
             num_units=self.RAM_SIZE,
             nonlinearity=lasagne.nonlinearities.rectify,
             W=lasagne.init.HeUniform(),
@@ -586,7 +586,7 @@ class DeepQLearner:
         )
 
         l_out = lasagne.layers.DenseLayer(
-            lasagne.layers.dropout(l_hidden2),
+            lasagne.layers.dropout(l_hidden2, p=dropout_level),
             num_units=output_dim,
             nonlinearity=None,
             W=lasagne.init.HeUniform(),
@@ -637,7 +637,7 @@ class DeepQLearner:
         )
 
         l_out = lasagne.layers.DenseLayer(
-            l_hidden4,
+            lasagne.layers.dropout(l_hidden4, p=dropout_level),
             num_units=output_dim,
             nonlinearity=None,
             W=lasagne.init.HeUniform(),
