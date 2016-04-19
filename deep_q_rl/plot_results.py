@@ -6,27 +6,28 @@ Antonoglou, Daan Wierstra, Martin Riedmiller
 
 Usage:
 
-plot_results.py RESULTS_CSV_FILE
+plot_results.py RESULTS_CSV_FILE (--epochs E)
 """
 
 import numpy as np
 import matplotlib.pyplot as plt
-import sys
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument('filename', type=str, nargs=1)
+parser.add_argument('--epochs', dest='epochs', default=100, type=int, nargs='?')
+parser.add_argument('--title', dest='title', default="", type=str, nargs='?')
+args = parser.parse_args()
 
 # Modify this to do some smoothing...
 kernel = np.array([1.] * 1)
 kernel = kernel / np.sum(kernel)
 
-results = np.loadtxt(open(sys.argv[1], "rb"), delimiter=",", skiprows=1)
-plt.subplot(1, 2, 1)
+results = np.loadtxt(open(args.filename[0], "rb"), delimiter=",", skiprows=1)
 plt.plot(results[:, 0], np.convolve(results[:, 3], kernel, mode='same'), '-')
 plt.xlabel('Training Epochs')
 plt.ylabel('Average score per episode')
-#plt.ylim([0, 250])
-plt.subplot(1, 2, 2)
-plt.plot(results[:, 0], results[:, 4], '-')
-plt.xlabel('Training Epochs')
-plt.ylabel('Average action value')
-#plt.ylim([0, 4])
+plt.title(args.title)
+plt.xlim([0, args.epochs])
 plt.show()
 plt.savefig("figure.png")
