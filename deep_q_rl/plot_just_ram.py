@@ -19,17 +19,19 @@ args = parser.parse_args()
 net_file = open(args.filename[0], 'r')
 network = cPickle.load(net_file)
 q_layers = lasagne.layers.get_all_layers(network.l_out)
-# TODO: check dimensions
 
-prev = np.identity(q_layers[1].W.get_value().shape[0])
+prev = []
 
 for i in range(1, len(q_layers)):
     act = q_layers[i].W.get_value()
-    act = np.dot(prev, act)
+    prev.append(act)
+    for j in range(i-2, -1, -1):
+        act = np.maximum(0, act)
+        act = np.linalg.solve(prev[j].T, act)
+
     plt.subplot(1, len(q_layers)-1, i)
     plt.imshow(act, vmin=act.min(), vmax=act.max(), interpolation='none',
-               cmap='gray')#, aspect=1/32.)
-    prev = act
+               cmap='bwr')#, aspect=1/32.)
 
 # each column corresponds to the pattern in ram that causes the biggest activation in the given node (assuming that the l2 norm of that ram signal is limited)
 
