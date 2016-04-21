@@ -107,7 +107,7 @@ class NeuralAgent(object):
     def save_info_file(self):
         f = open(self.exp_dir + "/info", 'w')
         f.write('game = ' + self.exp_pref + '\n')
-        f.write('network type = ' + self.network.network_type + '\n')
+        #f.write('network type = ' + self.network.network_type + '\n')
         f.write('replay memory size = ' + str(self.replay_memory_size) + '\n')
         f.flush()
         f.close()
