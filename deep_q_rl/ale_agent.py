@@ -119,7 +119,7 @@ class NeuralAgent(object):
         self.results_file.write(out)
         self.results_file.flush()
         logging.info("average reward: " +
-                     self.total_reward / float(num_episodes) + "\n")
+                     str(self.total_reward / float(num_episodes)) + "\n")
 
     def _update_learning_file(self):
         out = "{},{}\n".format(np.mean(self.loss_averages),
