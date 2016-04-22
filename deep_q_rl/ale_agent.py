@@ -286,8 +286,6 @@ class NeuralAgent(object):
                 self._update_learning_file()
 
     def finish_epoch(self, epoch):
-        if (epoch % 4) != 0:
-            return
         net_file = open(self.exp_dir + '/network_file_' + str(epoch) + \
                         '.pkl', 'w')
         cPickle.dump(self.network, net_file, -1)
