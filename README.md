@@ -20,14 +20,57 @@ We use the DQN algorithm to learn the strategies for Atari games from the RAM st
 * [Theano](http://deeplearning.net/software/theano/) ([https://github.com/Theano/Theano](https://github.com/Theano/Theano))
 * [Lasagne](http://lasagne.readthedocs.org/en/latest/) ([https://github.com/Lasagne/Lasagne](https://github.com/Lasagne/Lasagne)
 * [Pylearn2](http://deeplearning.net/software/pylearn2/) ([https://github.com/lisa-lab/pylearn2](https://github.com/lisa-lab/pylearn2))
-* [Arcade Learning Environment](http://www.arcadelearningenvironment.org/) ([https://github.com/sygi/Arcade-Learning-Environment](https://github.com/sygi/Arcade-Learning-Environment) (we use our fork of ALE which draws state of the RAM))
+* [Arcade Learning Environment](http://www.arcadelearningenvironment.org/) ([https://github.com/mgbellemare/Arcade-Learning-Environment](https://github.com/mgbellemare/Arcade-Learning-Environment))
 
 The script `dep_script.sh` can be used to install all dependencies under Ubuntu.
 
 
 # Running
+We've done a number of experiments with models that use RAM state. They don't fully share the code, so we split them in branches. To re-run them, you can use our scripts, which are located in the main directory of the repository.
 
-TODO: describe all the experiments and how to run the code.
+## Network types
+
+- just_ram - network that takes only RAM as inputs, passes it through 2 ReLU layers with 128 nodes each and scales the output to the appropriate size
+- big_ram - the analogous network, but with 4 hidden layers
+- mixed_ram - network taking both ram and screen as an input
+- big_mixed_ram - deeper version of mixed_ram
+- ram_dropout - the just_ram with applied dropout to all the layers except the output
+- big_dropout - the big_ram network with dropout
+
+## Frame skip
+Evaluation of a model using a different frame skip:
+```
+./frameskip.sh <rom name> <network type> <frameskip>, e.g:
+./frameskip.sh breakout just_ram 8
+```
+
+## Dropout
+We added dropout to the two ram-only networks. You can run it as:
+```
+./dropout.sh <rom name> ram_dropout
+OR
+./dropout <rom name> big_dropout
+```
+
+`ram_dropout` is a network with two dense hidden layers, `big_dropout` with 4.
+
+## Weight-decay
+You can try the models with l2-regularization using:
+```
+./weight-decay.sh <rom name> <network type>, e.g:
+./weight-decay.sh breakout big_ram
+```
+
+## Decreasing learning-rate
+The models with learning rate decreased to $0.001$ can be run as:
+```
+./learningrate.sh <rom name> <network type>, e.g:
+./learningrate.sh breakout big_ram
+```
+>>>>>>> ddebe2a... improved readme
+
+## Roms
+You need to put roms in the `roms` subdirectory. Their names should be spelled with lowercase letters, e.g. `breakout.bin`.
 
 # See Also
 
