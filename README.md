@@ -55,14 +55,12 @@ You can try the models with l2-regularization using:
 ./weight-decay.sh breakout big_ram
 ```
 
-## Unrolling frameskip (TODO?)
-You can try passing a ram of all the frames in-between action changes instead of just at the last frame by:
+## Decreasing learning-rate
+The models with learning rate decreased to $0.001$ can be run as:
 ```
-./unroll-frameskip.sh <rom name>
+./learningrate.sh <rom name> <network type>, e.g:
+./learningrate.sh breakout big_ram
 ```
-It will run a `just_ram` network (with 2 hidden relu layers).
-
-## Double q-learning (TODO?)
 
 # See Also
 
