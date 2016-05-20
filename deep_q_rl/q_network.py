@@ -176,13 +176,32 @@ class DeepQLearner:
             updates = lasagne.updates.apply_momentum(updates, None,
                                                      self.momentum)
 
+        def inspect_inputs(i, node, fn):
+            if ('maxand' not in str(node).lower()):
+                return
+            print i, node, "input(s) value(s):", fn.inputs #[input[0] for input in fn.inputs],
+            raw_input('press enter')
+
+        def inspect_outputs(i, node, fn):
+            if ('maxand' not in str(node).lower()):
+                return
+            print "output(s) value(s):", fn.outputs #[output[0] for output in fn.outputs]
+            raw_input('press enter')
+
         self._train = theano.function([], [loss, q_vals], updates=updates,
-                                      givens=givens, on_unused_input='warn')
+                                      givens=givens,
+                                      mode=theano.compile.MonitorMode(
+                                          pre_func=inspect_inputs,
+                                          post_func=inspect_outputs),
+                                      on_unused_input='warn')
+
         self._q_vals = theano.function([], q_vals,
                                        givens={
-                                         states: self.states_shared,
-                                         ram_states: self.ram_states_shared,
-                                         },
+                                           states: self.states_shared,
+                                           ram_states: self.ram_states_shared,
+                                       }, mode=theano.compile.MonitorMode(
+                                           pre_func=inspect_inputs,
+                                           post_func=inspect_outputs),
                                        on_unused_input='warn')
 
     def build_network(self, network_type, input_width, input_height,
