@@ -82,13 +82,11 @@ class NeuralAgent(object):
         self.episode_counter = 0
         self.batch_counter = 0
 
-        self.holdout_data = None
         self.holdout_ram = None
 
         # In order to add an element to the data set we need the
         # previous state and action and the current reward.  These
         # will be used to store states and actions.
-        self.last_img = None
         self.last_action = None
         self.last_ram = None
 
@@ -127,7 +125,7 @@ class NeuralAgent(object):
         self.learning_file.write(out)
         self.learning_file.flush()
 
-    def start_episode(self, observation, ram):
+    def start_episode(self, ram):
         """
         This method is called once at the beginning of each episode.
         No reward is provided, because reward is only available after
@@ -153,7 +151,6 @@ class NeuralAgent(object):
 
         self.last_action = return_action
 
-        self.last_img = observation
         self.last_ram = ram
 
         return return_action
@@ -171,7 +168,7 @@ class NeuralAgent(object):
             plt.grid(color='r', linestyle='-', linewidth=1)
         plt.show()
 
-    def step(self, reward, observation, ram):
+    def step(self, reward, ram):
         """
         This method is called each time step.
 
@@ -191,8 +188,7 @@ class NeuralAgent(object):
         #TESTING---------------------------
         if self.testing:
             self.episode_reward += reward
-            action = self._choose_action(self.test_data_set, .05,
-                                         observation, ram, np.clip(reward, -1, 1))
+            action = self._choose_action(self.test_data_set, .05, ram, np.clip(reward, -1, 1))
 
         #NOT TESTING---------------------------
         else:
@@ -202,7 +198,7 @@ class NeuralAgent(object):
                                    self.epsilon - self.epsilon_rate)
 
                 action = self._choose_action(self.data_set, self.epsilon,
-                                             observation, ram,
+                                             ram,
                                              np.clip(reward, -1, 1))
 
                 if self.step_counter % self.update_frequency == 0:
@@ -212,17 +208,16 @@ class NeuralAgent(object):
 
             else: # Still gathering initial random data...
                 action = self._choose_action(self.data_set, self.epsilon,
-                                             observation, ram,
+                                             ram,
                                              np.clip(reward, -1, 1))
 
 
         self.last_action = action
-        self.last_img = observation
         self.last_ram = ram
 
         return action
 
-    def _choose_action(self, data_set, epsilon, cur_img, cur_ram, reward):
+    def _choose_action(self, data_set, epsilon, cur_ram, reward):
         """
         Add the most recent data to the data set and choose
         an action based on the current policy.
@@ -230,10 +225,9 @@ class NeuralAgent(object):
         cur_ram - current ram state
         """
 
-        data_set.add_sample(self.last_img, self.last_action, reward, False, self.last_ram)
+        data_set.add_sample(self.last_action, reward, False, self.last_ram)
         if self.step_counter >= self.phi_length:
-            phi = data_set.phi(cur_img)
-            action = self.network.choose_action(phi, epsilon, cur_ram)
+            action = self.network.choose_action(epsilon, cur_ram)
         else:
             action = self.rng.randint(0, self.num_actions)
 
@@ -245,11 +239,9 @@ class NeuralAgent(object):
         May be overridden if a subclass needs to train the network
         differently.
         """
-        states, rams, actions, rewards, next_states, next_rams, terminals = \
-                                self.data_set.random_batch(
-                                    self.network.batch_size)
-        return self.network.train(states, actions, rewards,
-                                  next_states, terminals, rams, next_rams)
+        rams, actions, rewards, next_rams, terminals = \
+                self.data_set.random_batch(self.network.batch_size)
+        return self.network.train(actions, rewards, terminals, rams, next_rams)
 
 
     def end_episode(self, reward, terminal=True):
@@ -277,8 +269,7 @@ class NeuralAgent(object):
         else:
 
             # Store the latest sample.
-            self.data_set.add_sample(self.last_img,
-                                     self.last_action,
+            self.data_set.add_sample(self.last_action,
                                      np.clip(reward, -1, 1),
                                      True, self.last_ram)
 
@@ -300,12 +291,12 @@ class NeuralAgent(object):
         self.testing = False
         holdout_size = 3200
 
-        if self.holdout_data is None and len(self.data_set) > holdout_size:
-            self.holdout_data, self.holdout_ram, _, _, _, _, _ =\
+        if self.holdout_ram is None and len(self.data_set) > holdout_size:
+            self.holdout_ram, _, _, _, _ =\
                 self.data_set.random_batch(holdout_size)
 
         holdout_sum = 0
-        if self.holdout_data is not None:
+        if self.holdout_ram is not None:
             for i in range(holdout_size):
                 holdout_sum += np.max(
                     self.network.q_vals(self.holdout_ram[i, ...]))

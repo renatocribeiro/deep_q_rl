@@ -36,7 +36,6 @@ actions, and rewards.
         self.ram_size = ram_size
 
         # Allocate the circular buffers and indices.
-        self.imgs = np.zeros((max_steps, height, width), dtype='uint8')
         self.actions = np.zeros(max_steps, dtype='int32')
         self.rewards = np.zeros(max_steps, dtype=floatX)
         self.terminal = np.zeros(max_steps, dtype='bool')
@@ -46,7 +45,7 @@ actions, and rewards.
         self.top = 0
         self.size = 0
 
-    def add_sample(self, img, action, reward, terminal, ram):
+    def add_sample(self, action, reward, terminal, ram):
         """Add a time step record.
 
         Arguments:
@@ -57,7 +56,6 @@ actions, and rewards.
             terminal -- boolean indicating whether the episode ended
             after this time step
         """
-        self.imgs[self.top] = img
         self.actions[self.top] = action
         self.rewards[self.top] = reward
         self.terminal[self.top] = terminal
@@ -75,44 +73,15 @@ actions, and rewards.
         # random_batch's check.
         return max(0, self.size - self.phi_length)
 
-    def last_phi(self):
-        """Return the most recent phi (sequence of image frames)."""
-        indexes = np.arange(self.top - self.phi_length, self.top)
-        return self.imgs.take(indexes, axis=0, mode='wrap')
-
-    def phi(self, img):
-        """Return a phi (sequence of image frames), using the last phi_length -
-        1, plus img.
-
-        """
-        indexes = np.arange(self.top - self.phi_length + 1, self.top)
-
-        phi = np.empty((self.phi_length, self.height, self.width), dtype=floatX)
-        phi[0:self.phi_length - 1] = self.imgs.take(indexes,
-                                                    axis=0,
-                                                    mode='wrap')
-        phi[-1] = img
-        return phi
-
     def random_batch(self, batch_size):
         """Return corresponding states, rams, actions, rewards, terminal status, next_states and next_rams for batch_size randomly chosen state transitions.
 
         """
         # Allocate the response.
-        states = np.zeros((batch_size,
-                           self.phi_length,
-                           self.height,
-                           self.width),
-                          dtype='uint8')
         rams = np.zeros((batch_size, self.ram_size), dtype='uint8')
         actions = np.zeros((batch_size, 1), dtype='int32')
         rewards = np.zeros((batch_size, 1), dtype=floatX)
         terminal = np.zeros((batch_size, 1), dtype='bool')
-        next_states = np.zeros((batch_size,
-                                self.phi_length,
-                                self.height,
-                                self.width),
-                               dtype='uint8')
         next_rams = np.zeros((batch_size, self.ram_size), dtype='uint8')
 
         count = 0
@@ -136,22 +105,18 @@ actions, and rewards.
                 continue
 
             # Add the state transition to the response.
-            states[count] = self.imgs.take(initial_indices, axis=0, mode='wrap')
             rams[count] = self.rams.take(end_index, axis=0, mode='wrap')
             actions[count] = self.actions.take(end_index, mode='wrap')
             rewards[count] = self.rewards.take(end_index, mode='wrap')
             terminal[count] = self.terminal.take(end_index, mode='wrap')
-            next_states[count] = self.imgs.take(transition_indices,
-                                                axis=0,
-                                                mode='wrap')
             next_rams[count] = self.rams.take(end_index+1,
                 axis=0, mode='wrap')
             count += 1
 
-        return states, rams, actions, rewards, next_states, next_rams, terminal
+        return rams, actions, rewards, next_rams, terminal
 
 
-# TESTING CODE BELOW THIS POINT... TODO: add ram to this code
+# TESTING CODE BELOW THIS POINT... TODO: add ram to this code and update
 
 def simple_tests():
     np.random.seed(222)

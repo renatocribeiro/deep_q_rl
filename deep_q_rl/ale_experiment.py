@@ -33,9 +33,6 @@ class ALEExperiment(object):
 
         self.buffer_length = 2
         self.buffer_count = 0
-        self.screen_buffer = np.empty((self.buffer_length,
-                                       self.height, self.width),
-                                      dtype=np.uint8)
         self.ram_size = 128  # TODO: pass as an argument
         self.current_ram = np.empty((self.ram_size,), dtype=np.uint8)
 
@@ -60,7 +57,6 @@ class ALEExperiment(object):
         self.run_epoch(epoch, test_length, True)
         self.agent.finish_testing(epoch)
 
-
     def run_epoch(self, epoch, num_steps, testing=False):
         """ Run one 'epoch' of training or testing, where an epoch is defined
         by the number of steps executed.  Prints a progress report after
@@ -78,7 +74,6 @@ class ALEExperiment(object):
             _, num_steps = self.run_episode(steps_left, testing)
 
             steps_left -= num_steps
-
 
     def _init_episode(self):
         """ This method resets the game if needed, performs enough null
@@ -137,7 +132,7 @@ class ALEExperiment(object):
 
         start_lives = self.gym_env.ale.lives()
 
-        action = self.agent.start_episode(self.get_observation(), self.current_ram)
+        action = self.agent.start_episode(self.current_ram)
         num_steps = 0
         while True:
             reward = self._step(self.min_action_set[action], action)
@@ -150,41 +145,5 @@ class ALEExperiment(object):
                 self.agent.end_episode(reward, terminal)
                 break
 
-            action = self.agent.step(reward, self.get_observation(), self.current_ram)
+            action = self.agent.step(reward, self.current_ram)
         return terminal, num_steps
-
-
-    def get_observation(self):
-        """ Resize and merge the previous two screen images """
-
-        assert self.buffer_count >= 2
-        index = self.buffer_count % self.buffer_length - 1
-        max_image = np.maximum(self.screen_buffer[index, ...],
-                               self.screen_buffer[index - 1, ...])
-        return self.resize_image(max_image)
-
-    def resize_image(self, image):
-        """ Appropriately resize a single image """
-
-        if self.resize_method == 'crop':
-            # resize keeping aspect ratio
-            resize_height = int(round(
-                float(self.height) * self.resized_width / self.width))
-
-            resized = cv2.resize(image,
-                                 (self.resized_width, resize_height),
-                                 interpolation=cv2.INTER_LINEAR)
-
-            # Crop the part we want
-            crop_y_cutoff = resize_height - CROP_OFFSET - self.resized_height
-            cropped = resized[crop_y_cutoff:
-                              crop_y_cutoff + self.resized_height, :]
-
-            return cropped
-        elif self.resize_method == 'scale':
-            return cv2.resize(image,
-                              (self.resized_width, self.resized_height),
-                              interpolation=cv2.INTER_LINEAR)
-        else:
-            raise ValueError('Unrecognized image resize method.')
-
