@@ -244,15 +244,16 @@ def launch(args, defaults, description):
     experiment.run()
 
     # testing
-    log_path = '/tmp/' + parameters.env_name + random.randint(0, 100)
-    print 'saving evaluation to' + log_path
+    import random
+    log_path = '/tmp/' + parameters.env_name + str(random.randint(0, 100))
+    print 'saving evaluation to: ' + log_path
 
-    api_key = "-1"
 
     subm_env = gym.make(parameters.env_name)
     subm_env.monitor.start(log_path, lambda v: False, force=True)
     experiment.run_tests(1009, 1000000)
     subm_env.close()
+    api_key = "-1"
     # gym.upload(log_path, writeup=blah, api_key=api_key)
 
 if __name__ == '__main__':
