@@ -53,9 +53,13 @@ class ALEExperiment(object):
             self.agent.finish_epoch(epoch)
 
             if self.test_length > 0:
-                self.agent.start_testing()
-                self.run_epoch(epoch, self.test_length, True)
-                self.agent.finish_testing(epoch)
+                self.run_tests(epoch, self.test_length)
+
+    def run_tests(self, epoch, test_length):
+        self.agent.start_testing()
+        self.run_epoch(epoch, test_length, True)
+        self.agent.finish_testing(epoch)
+
 
     def run_epoch(self, epoch, num_steps, testing=False):
         """ Run one 'epoch' of training or testing, where an epoch is defined
@@ -68,12 +72,9 @@ class ALEExperiment(object):
         testing - True if this Epoch is used for testing and not training
 
         """
-        self.terminal_lol = False # Make sure each epoch starts with a reset.
+        self.terminal_lol = False  # Make sure each epoch starts with a reset.
         steps_left = num_steps
         while steps_left > 0:
-            prefix = "testing" if testing else "training"
-            logging.info(prefix + " epoch: " + str(epoch) + " steps_left: " +
-                         str(steps_left))
             _, num_steps = self.run_episode(steps_left, testing)
 
             steps_left -= num_steps
@@ -91,7 +92,7 @@ class ALEExperiment(object):
             if self.max_start_nullops > 0:
                 random_actions = self.rng.randint(0, self.max_start_nullops+1)
                 for _ in range(random_actions):
-                    self._act(0, 0) # Null action
+                    self._act(0, 0)  # Null action
 
         # Make sure the screen buffer is filled at the beginning of
         # each episode...
@@ -105,20 +106,8 @@ class ALEExperiment(object):
 
         """
         obs, reward, _, _ = self.gym_env._step(action_id)
-#        index = self.buffer_count % self.buffer_length
-
-        # self.ale.getScreenGrayscale(self.screen_buffer[index, ...])
         self.current_ram = obs
-        
-        """self.ale.getRAM()
-        ram_size = self.ale.getRAMSize()
-        ram = np.zeros((ram_size), dtype=np.uint8)
-        self.ale.getRAM(ram)
-        print "obs:", obs
-        print "current:", self.current_ram
-        print "ram:", ram
-        """  # TODO: why there's a difference between gym_env._get_obs and ale.getRAM()?
-
+        # TODO: why there's a difference between gym_env._get_obs and ale.getRAM()?
         self.buffer_count += 1
         return reward
 
@@ -126,7 +115,7 @@ class ALEExperiment(object):
         """ Repeat one action the appopriate number of times and return
         the summed reward. """
         reward = 0
-        for _ in range(self.frame_skip): # TODO: reduce frameskip
+        for _ in range(self.frame_skip):  # TODO: reduce frameskip
             reward += self._act(action, action_id)
 
         return reward
@@ -142,6 +131,7 @@ class ALEExperiment(object):
         Return: (terminal, num_steps)
 
         """
+        print "running episode, steps left", max_steps
 
         self._init_episode()
 

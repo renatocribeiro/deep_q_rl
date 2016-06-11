@@ -251,7 +251,7 @@ def launch(args, defaults, description):
 
     subm_env = gym.make(parameters.env_name)
     subm_env.monitor.start(log_path, lambda v: False, force=True)
-    experiment.run()
+    experiment.run_tests(1009, 1000000)
     subm_env.close()
     # gym.upload(log_path, writeup=blah, api_key=api_key)
 

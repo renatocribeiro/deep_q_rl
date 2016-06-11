@@ -257,17 +257,13 @@ class DeepQLearner:
         self.update_counter += 1
         return np.sqrt(loss)
 
-    def q_vals(self, state, ram_state):
+    def q_vals(self, ram_state):
         """
         To predict the q-values of the moves, it needs to push the states in a form of a batch to the network, and return the first element of the result.
         """
-        states = np.zeros((self.batch_size, self.num_frames, self.input_height,
-                           self.input_width), dtype=theano.config.floatX)
         ram_states = np.zeros((self.batch_size, self.RAM_SIZE), dtype=theano.config.floatX)
-        states[0, ...] = state
         ram_states[0, ...] = ram_state
 
-        self.states_shared.set_value(states)
         self.ram_states_shared.set_value(ram_states)
         return self._q_vals()[0]
 
@@ -277,7 +273,7 @@ class DeepQLearner:
         """
         if self.rng.rand() < epsilon:
             return self.rng.randint(0, self.num_actions)
-        q_vals = self.q_vals(state, ram_state)
+        q_vals = self.q_vals(ram_state)
         return np.argmax(q_vals)
 
     def reset_q_hat(self):

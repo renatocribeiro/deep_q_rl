@@ -308,7 +308,7 @@ class NeuralAgent(object):
         if self.holdout_data is not None:
             for i in range(holdout_size):
                 holdout_sum += np.max(
-                    self.network.q_vals(self.holdout_data[i, ...], self.holdout_ram[i, ...]))
+                    self.network.q_vals(self.holdout_ram[i, ...]))
 
         self._update_results_file(epoch, self.episode_counter,
                                   holdout_sum / holdout_size)
