@@ -12,6 +12,7 @@ import gym
 import cPickle
 import numpy as np
 import theano
+import random
 
 import ale_experiment
 import ale_agent
@@ -192,6 +193,10 @@ def launch(args, defaults, description):
 
     # setting gym
     gym_env = gym.make(parameters.env_name)
+    log_path = '/icm/home/sygnowsk/sygi-q-rl/results/' + parameters.env_name + str(random.randint(0, 100))
+    print 'saving evaluation to: ' + log_path
+
+    gym_env.monitor.start(log_path, lambda v: False, force=True)
 
     num_actions = gym_env.action_space.n
 
@@ -240,20 +245,11 @@ def launch(args, defaults, description):
 
     print parameters
 
-    # training
     experiment.run()
+    experiment.run_tests(1009, 100000)
 
-    # testing
-    import random
-    log_path = '/tmp/' + parameters.env_name + str(random.randint(0, 100))
-    print 'saving evaluation to: ' + log_path
+    gym_env.close()
 
-
-    subm_env = gym.make(parameters.env_name)
-    subm_env.monitor.start(log_path, lambda v: False, force=True)
-    experiment.run_tests(1009, 1000000)
-    subm_env.close()
-    api_key = "-1"
     # gym.upload(log_path, writeup=blah, api_key=api_key)
 
 if __name__ == '__main__':
