@@ -8,6 +8,7 @@ import os
 import argparse
 import logging
 import ale_python_interface
+import gym
 import cPickle
 import numpy as np
 import theano
@@ -138,6 +139,9 @@ def process_args(args, defaults, description):
                         type=bool, default=defaults.CUDNN_DETERMINISTIC,
                         help=('Whether to use deterministic backprop. ' +
                               '(default: %(default)s)'))
+    parser.add_argument('--env-name', dest="env_name",
+                        type=str, default=defaults.ENV_NAME,
+                        help=('Name of the OpenAI Gym environment to run.'))
 
     parameters = parser.parse_args(args)
     if parameters.experiment_prefix is None:
@@ -186,23 +190,10 @@ def launch(args, defaults, description):
     if parameters.cudnn_deterministic:
         theano.config.dnn.conv.algo_bwd = 'deterministic'
 
-    ale = ale_python_interface.ALEInterface()
-    ale.setInt('random_seed', rng.randint(1000))
+    # setting gym
+    gym_env = gym.make(parameters.env_name)
 
-    if parameters.display_screen:
-        import sys
-        if sys.platform == 'darwin':
-            import pygame
-            pygame.init()
-            ale.setBool('sound', False) # Sound doesn't work on OSX
-
-    ale.setBool('display_screen', parameters.display_screen)
-    ale.setFloat('repeat_action_probability',
-                 parameters.repeat_action_probability)
-
-    ale.loadROM(full_rom_path)
-
-    num_actions = len(ale.getMinimalActionSet())
+    num_actions = gym_env.action_space.n
 
     if parameters.nn_file is None:
         network = q_network.DeepQLearner(defaults.RESIZED_WIDTH,
@@ -235,7 +226,7 @@ def launch(args, defaults, description):
                                   parameters.update_frequency,
                                   rng)
 
-    experiment = ale_experiment.ALEExperiment(ale, agent,
+    experiment = ale_experiment.ALEExperiment(gym_env, agent,
                                               defaults.RESIZED_WIDTH,
                                               defaults.RESIZED_HEIGHT,
                                               parameters.resize_method,
@@ -247,11 +238,22 @@ def launch(args, defaults, description):
                                               parameters.max_start_nullops,
                                               rng)
 
-
     print parameters
+
+    # training
     experiment.run()
 
+    # testing
+    log_path = '/tmp/' + parameters.env_name + random.randint(0, 100)
+    print 'saving evaluation to' + log_path
 
+    api_key = "-1"
+
+    subm_env = gym.make(parameters.env_name)
+    subm_env.monitor.start(log_path, lambda v: False, force=True)
+    experiment.run()
+    subm_env.close()
+    # gym.upload(log_path, writeup=blah, api_key=api_key)
 
 if __name__ == '__main__':
     pass

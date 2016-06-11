@@ -15,31 +15,31 @@ CROP_OFFSET = 8
 
 
 class ALEExperiment(object):
-    def __init__(self, ale, agent, resized_width, resized_height,
+    def __init__(self, gym_env, agent, resized_width, resized_height,
                  resize_method, num_epochs, epoch_length, test_length,
                  frame_skip, death_ends_episode, max_start_nullops, rng):
-        self.ale = ale
+        self.gym_env = gym_env
         self.agent = agent
         self.num_epochs = num_epochs
         self.epoch_length = epoch_length
         self.test_length = test_length
         self.frame_skip = frame_skip
         self.death_ends_episode = death_ends_episode
-        self.min_action_set = ale.getMinimalActionSet()
+        self.min_action_set = gym_env._action_set  # TODO: changeto use public interface
         self.resized_width = resized_width
         self.resized_height = resized_height
         self.resize_method = resize_method
-        self.width, self.height = ale.getScreenDims()
+        self.width, self.height = gym_env.ale.getScreenDims()  # TODO: remove for RAM-only
 
         self.buffer_length = 2
         self.buffer_count = 0
         self.screen_buffer = np.empty((self.buffer_length,
                                        self.height, self.width),
                                       dtype=np.uint8)
-        self.ram_size = 128 # TODO: pass as an argument
+        self.ram_size = 128  # TODO: pass as an argument
         self.current_ram = np.empty((self.ram_size,), dtype=np.uint8)
 
-        self.terminal_lol = False # Most recent episode ended on a loss of life
+        self.terminal_lol = False  # Most recent episode ended on a loss of life
         self.max_start_nullops = max_start_nullops
         self.rng = rng
 
@@ -85,41 +85,49 @@ class ALEExperiment(object):
         performs a randomly determined number of null action to randomize
         the initial game state."""
 
-        if not self.terminal_lol or self.ale.game_over():
-            self.ale.reset_game()
+        if not self.terminal_lol or self.gym_env.ale.game_over():
+            self.gym_env._reset()
 
             if self.max_start_nullops > 0:
                 random_actions = self.rng.randint(0, self.max_start_nullops+1)
                 for _ in range(random_actions):
-                    self._act(0) # Null action
+                    self._act(0, 0) # Null action
 
         # Make sure the screen buffer is filled at the beginning of
         # each episode...
-        self._act(0)
-        self._act(0)
+        self._act(0, 0)
+        self._act(0, 0)
 
-
-    def _act(self, action):
+    def _act(self, action, action_id):
         """Perform the indicated action for a single frame, return the
         resulting reward and store the resulting screen image in the
         buffer
 
         """
-        reward = self.ale.act(action)
-        index = self.buffer_count % self.buffer_length
+        obs, reward, _, _ = self.gym_env._step(action_id)
+#        index = self.buffer_count % self.buffer_length
 
-        self.ale.getScreenGrayscale(self.screen_buffer[index, ...])
-        self.current_ram = self.ale.getRAM()
+        # self.ale.getScreenGrayscale(self.screen_buffer[index, ...])
+        self.current_ram = obs
+        
+        """self.ale.getRAM()
+        ram_size = self.ale.getRAMSize()
+        ram = np.zeros((ram_size), dtype=np.uint8)
+        self.ale.getRAM(ram)
+        print "obs:", obs
+        print "current:", self.current_ram
+        print "ram:", ram
+        """  # TODO: why there's a difference between gym_env._get_obs and ale.getRAM()?
 
         self.buffer_count += 1
         return reward
 
-    def _step(self, action):
+    def _step(self, action, action_id):
         """ Repeat one action the appopriate number of times and return
         the summed reward. """
         reward = 0
-        for _ in range(self.frame_skip):
-            reward += self._act(action)
+        for _ in range(self.frame_skip): # TODO: reduce frameskip
+            reward += self._act(action, action_id)
 
         return reward
 
@@ -137,15 +145,15 @@ class ALEExperiment(object):
 
         self._init_episode()
 
-        start_lives = self.ale.lives()
+        start_lives = self.gym_env.ale.lives()
 
         action = self.agent.start_episode(self.get_observation(), self.current_ram)
         num_steps = 0
         while True:
-            reward = self._step(self.min_action_set[action])
+            reward = self._step(self.min_action_set[action], action)
             self.terminal_lol = (self.death_ends_episode and not testing and
-                                 self.ale.lives() < start_lives)
-            terminal = self.ale.game_over() or self.terminal_lol
+                                 self.gym_env.ale.lives() < start_lives)
+            terminal = self.gym_env.ale.game_over() or self.terminal_lol
             num_steps += 1
 
             if terminal or num_steps >= max_steps:
