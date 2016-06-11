@@ -244,6 +244,7 @@ def launch(args, defaults, description):
     experiment.run()
 
     # testing
+    import random
     log_path = '/tmp/' + parameters.env_name + random.randint(0, 100)
     print 'saving evaluation to' + log_path
 
