@@ -25,11 +25,9 @@ class ALEExperiment(object):
         self.test_length = test_length
         self.frame_skip = frame_skip
         self.death_ends_episode = death_ends_episode
-        self.min_action_set = gym_env._action_set  # TODO: changeto use public interface
         self.resized_width = resized_width
         self.resized_height = resized_height
         self.resize_method = resize_method
-        self.width, self.height = gym_env.ale.getScreenDims()  # TODO: remove for RAM-only
 
         self.buffer_length = 2
         self.buffer_count = 0
@@ -81,39 +79,43 @@ class ALEExperiment(object):
         performs a randomly determined number of null action to randomize
         the initial game state."""
 
-        if not self.terminal_lol or self.gym_env.ale.game_over():
-            self.gym_env._reset()
+        self.gym_env._reset()
 
-            if self.max_start_nullops > 0:
-                random_actions = self.rng.randint(0, self.max_start_nullops+1)
-                for _ in range(random_actions):
-                    self._act(0, 0)  # Null action
+        if self.max_start_nullops > 0:
+            random_actions = self.rng.randint(0, self.max_start_nullops+1)
+            for _ in range(random_actions):
+                self._act(0)  # Null action
 
         # Make sure the screen buffer is filled at the beginning of
         # each episode...
-        self._act(0, 0)
-        self._act(0, 0)
+        self._act(0)
+        self._act(0)
 
-    def _act(self, action, action_id):
+    def _act(self, action_id):
         """Perform the indicated action for a single frame, return the
         resulting reward and store the resulting screen image in the
         buffer
 
         """
-        obs, reward, _, _ = self.gym_env._step(action_id)
+        obs, reward, done, _ = self.gym_env._step(action_id)
         self.current_ram = obs
         # TODO: why there's a difference between gym_env._get_obs and ale.getRAM()?
         self.buffer_count += 1
-        return reward
+        return reward, done
 
-    def _step(self, action, action_id):
+    def _step(self, action_id):
         """ Repeat one action the appopriate number of times and return
         the summed reward. """
         reward = 0
+        done = False
         for _ in range(self.frame_skip):  # TODO: reduce frameskip
-            reward += self._act(action, action_id)
+            local_reward, local_done = self._act(action_id)
+            reward += local_reward
+            if local_done:
+                done = True
+                break
 
-        return reward
+        return reward, done
 
     def run_episode(self, max_steps, testing):
         """Run a single training episode.
@@ -130,15 +132,10 @@ class ALEExperiment(object):
 
         self._init_episode()
 
-        start_lives = self.gym_env.ale.lives()
-
         action = self.agent.start_episode(self.current_ram)
         num_steps = 0
         while True:
-            reward = self._step(self.min_action_set[action], action)
-            self.terminal_lol = (self.death_ends_episode and not testing and
-                                 self.gym_env.ale.lives() < start_lives)
-            terminal = self.gym_env.ale.game_over() or self.terminal_lol
+            reward, terminal = self._step(action)
             num_steps += 1
 
             if terminal or num_steps >= max_steps:
