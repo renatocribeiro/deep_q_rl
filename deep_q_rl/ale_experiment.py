@@ -79,7 +79,7 @@ class ALEExperiment(object):
         performs a randomly determined number of null action to randomize
         the initial game state."""
 
-        self.gym_env._reset()
+        self.gym_env.reset()
 
         if self.max_start_nullops > 0:
             random_actions = self.rng.randint(0, self.max_start_nullops+1)
@@ -97,9 +97,8 @@ class ALEExperiment(object):
         buffer
 
         """
-        obs, reward, done, _ = self.gym_env._step(action_id)
+        obs, reward, done, _ = self.gym_env.step(action_id)
         self.current_ram = obs
-        # TODO: why there's a difference between gym_env._get_obs and ale.getRAM()?
         self.buffer_count += 1
         return reward, done
 

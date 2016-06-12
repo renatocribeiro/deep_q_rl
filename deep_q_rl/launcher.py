@@ -248,6 +248,7 @@ def launch(args, defaults, description):
     experiment.run()
     experiment.run_tests(1009, 100000)
 
+    gym_env.monitor.close()
     gym_env.close()
 
     # gym.upload(log_path, writeup=blah, api_key=api_key)
