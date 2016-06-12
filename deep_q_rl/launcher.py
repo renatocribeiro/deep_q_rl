@@ -18,6 +18,7 @@ import ale_experiment
 import ale_agent
 import q_network
 
+
 def process_args(args, defaults, description):
     """
     Handle the command line.
@@ -28,8 +29,6 @@ def process_args(args, defaults, description):
     description - a string to display at the top of the help message.
     """
     parser = argparse.ArgumentParser(description=description)
-    parser.add_argument('-r', '--rom', dest="rom", default=defaults.ROM,
-                        help='ROM to run (default: %(default)s)')
     parser.add_argument('-e', '--epochs', dest="epochs", type=int,
                         default=defaults.EPOCHS,
                         help='Number of training epochs (default: %(default)s)')
@@ -55,7 +54,6 @@ def process_args(args, defaults, description):
                         default=defaults.REPEAT_ACTION_PROBABILITY, type=float,
                         help=('Probability that action choice will be ' +
                               'ignored (default: %(default)s)'))
-
     parser.add_argument('--update-rule', dest="update_rule",
                         type=str, default=defaults.UPDATE_RULE,
                         help=('deepmind_rmsprop|rmsprop|sgd ' +
@@ -74,7 +72,7 @@ def process_args(args, defaults, description):
                         help='Denominator epsilson for rms_prop ' +
                         '(default: %(default)s)')
     parser.add_argument('--momentum', type=float, default=defaults.MOMENTUM,
-                        help=('Momentum term for Nesterov momentum. '+
+                        help=('Momentum term for Nesterov momentum. ' +
                               '(default: %(default)s)'))
     parser.add_argument('--clip-delta', dest="clip_delta", type=float,
                         default=defaults.CLIP_DELTA,
@@ -114,7 +112,7 @@ def process_args(args, defaults, description):
                               '(default: %(default)s)'))
     parser.add_argument('--update-frequency', dest="update_frequency",
                         type=int, default=defaults.UPDATE_FREQUENCY,
-                        help=('Number of actions before each SGD update. '+
+                        help=('Number of actions before each SGD update. ' +
                               '(default: %(default)s)'))
     parser.add_argument('--replay-start-size', dest="replay_start_size",
                         type=int, default=defaults.REPLAY_START_SIZE,
@@ -146,8 +144,7 @@ def process_args(args, defaults, description):
 
     parameters = parser.parse_args(args)
     if parameters.experiment_prefix is None:
-        name = os.path.splitext(os.path.basename(parameters.rom))[0]
-        parameters.experiment_prefix = name
+        parameters.experiment_prefix = parameters.env_name
 
     if parameters.death_ends_episode == 'true':
         parameters.death_ends_episode = True
@@ -168,7 +165,6 @@ def process_args(args, defaults, description):
     return parameters
 
 
-
 def launch(args, defaults, description):
     """
     Execute a complete training run.
@@ -176,12 +172,6 @@ def launch(args, defaults, description):
 
     logging.basicConfig(level=logging.INFO)
     parameters = process_args(args, defaults, description)
-
-    if parameters.rom.endswith('.bin'):
-        rom = parameters.rom
-    else:
-        rom = "%s.bin" % parameters.rom
-    full_rom_path = os.path.join(defaults.BASE_ROM_PATH, rom)
 
     if parameters.deterministic:
         rng = np.random.RandomState(123456)
@@ -193,7 +183,8 @@ def launch(args, defaults, description):
 
     # setting gym
     gym_env = gym.make(parameters.env_name)
-    log_path = '/icm/home/sygnowsk/sygi-q-rl/results/' + parameters.env_name + str(random.randint(0, 100))
+    log_path = '/icm/home/sygnowsk/sygi-q-rl/results/' + parameters.env_name +\
+        "-" + str(random.randint(0, 100))
     print 'saving evaluation to: ' + log_path
 
     gym_env.monitor.start(log_path, lambda v: False, force=True)

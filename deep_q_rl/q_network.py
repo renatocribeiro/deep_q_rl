@@ -91,19 +91,13 @@ class DeepQLearner:
         )
 
         if self.freeze_interval > 0:
-            next_q_vals = lasagne.layers.get_output(self.next_l_out,
-                {
-                  self.l_ram_in:
-                  (next_ram_states / 256.0)
-            }
+            next_q_vals = lasagne.layers.get_output(self.next_l_out, {
+                self.l_ram_in: (next_ram_states / 256.0)}
             )
         else:
-            next_q_vals = lasagne.layers.get_output(self.l_out,
-                {
-                  self.l_ram_in:
-                  (next_ram_states / 256.0),
-                }
-                )
+            next_q_vals = lasagne.layers.get_output(self.l_out, {
+                self.l_ram_in: (next_ram_states / 256.0)}
+            )
             next_q_vals = theano.gradient.disconnected_grad(next_q_vals)
 
         target = (rewards +
@@ -118,7 +112,7 @@ class DeepQLearner:
             # the clip bounds. To avoid this, we extend the loss
             # linearly past the clip point to keep the gradient constant
             # in that regime.
-            # 
+            #
             # This is equivalent to declaring d loss/d q_vals to be
             # equal to the clipped diff, then backpropagating from
             # there, which is what the DeepMind implementation does.
@@ -162,49 +156,27 @@ class DeepQLearner:
                                       givens=givens, on_unused_input='warn')
         self._q_vals = theano.function([], q_vals,
                                        givens={
-                                         ram_states: self.ram_states_shared,
-                                         },
+                                           ram_states: self.ram_states_shared,
+                                           },
                                        on_unused_input='warn')
 
     def build_network(self, network_type, input_width, input_height,
                       output_dim, num_frames, batch_size):
-        if network_type == "nature_cuda":
-            return self.build_nature_network(input_width, input_height,
-                                             output_dim, num_frames, batch_size)
-        if network_type == "nature_dnn":
-            return self.build_nature_network_dnn(input_width, input_height,
-                                                 output_dim, num_frames,
-                                                 batch_size)
-        elif network_type == "nips_cuda":
-            return self.build_nips_network(input_width, input_height,
-                                           output_dim, num_frames, batch_size)
-        elif network_type == "nips_dnn":
-            return self.build_nips_network_dnn(input_width, input_height,
-                                               output_dim, num_frames,
-                                               batch_size)
-        elif network_type == "linear":
+        if network_type == "linear":
             return self.build_linear_network(input_width, input_height,
                                              output_dim, num_frames, batch_size)
-        elif network_type == "mixed_ram":
-            return self.build_mixed_ram_network(input_width, input_height,
-                                           output_dim, num_frames, batch_size)
         elif network_type == "just_ram":
             return self.build_ram_network(input_width, input_height, output_dim,
                                           num_frames, batch_size)
-        elif network_type == "big_mixed_ram":
-            return self.build_big_joint_network(input_width, input_height,
-                                                output_dim, num_frames, batch_size)
 
         elif network_type == "ram_dropout":
             return self.build_ram_dropout_network(input_width, input_height,
-                    output_dim, num_frames, batch_size)
+                                                  output_dim, num_frames, batch_size)
         elif network_type == "big_ram":
             return self.build_big_ram_network(input_width, input_height,
-                    output_dim, num_frames, batch_size)
+                                              output_dim, num_frames, batch_size)
         else:
             raise ValueError("Unrecognized network: {}".format(network_type))
-
-
 
     def train(self, actions, rewards, terminals, ram_states, next_ram_states):
         """
@@ -212,11 +184,8 @@ class DeepQLearner:
 
         Arguments:
 
-        states - b x f x h x w numpy array, where b is batch size,
-                 f is num frames, h is height and w is width.
         actions - b x 1 numpy array of integers
         rewards - b x 1 numpy array
-        next_states - b x f x h x w numpy array
         terminals - b x 1 numpy boolean array (currently ignored)
         ram_states - b x R numpy array, R - ram size
         next_ram_states - b x R numpy array
@@ -230,7 +199,7 @@ class DeepQLearner:
         self.ram_states_shared.set_value(ram_states)
         self.next_ram_states_shared.set_value(next_ram_states)
         if (self.freeze_interval > 0 and
-            self.update_counter % self.freeze_interval == 0):
+                self.update_counter % self.freeze_interval == 0):
             self.reset_q_hat()
         loss, _ = self._train()
         self.update_counter += 1
@@ -376,90 +345,6 @@ class DeepQLearner:
             num_units=output_dim,
             nonlinearity=None,
             W=lasagne.init.HeUniform(),
-            b=lasagne.init.Constant(.1)
-        )
-
-        return l_out
-
-    def build_big_joint_network(self, input_width, input_height, output_dim,
-                                num_frames, batch_size):
-        """
-        NIPS + deeper ram
-        """
-        self.l_in = lasagne.layers.InputLayer(
-            shape=(batch_size, num_frames, input_width, input_height)
-        )
-
-        self.l_ram_in = lasagne.layers.InputLayer(
-            shape=(batch_size, self.RAM_SIZE)
-        )
-
-        l_conv1 = lasagne.layers.Conv2DLayer(
-            self.l_in,
-            num_filters=16,
-            filter_size=(8, 8),
-            stride=(4, 4),
-            nonlinearity=lasagne.nonlinearities.rectify,
-            #W=lasagne.init.HeUniform(c01b=True),
-            W=lasagne.init.Normal(.01),
-            b=lasagne.init.Constant(.1),
-        )
-
-        l_conv2 = lasagne.layers.Conv2DLayer(
-            l_conv1,
-            num_filters=32,
-            filter_size=(4, 4),
-            stride=(2, 2),
-            nonlinearity=lasagne.nonlinearities.rectify,
-            #W=lasagne.init.HeUniform(c01b=True),
-            W=lasagne.init.Normal(.01),
-            b=lasagne.init.Constant(.1),
-        )
-
-        l_hidden1 = lasagne.layers.DenseLayer(
-            l_conv2,
-            num_units=256,
-            nonlinearity=lasagne.nonlinearities.rectify,
-            #W=lasagne.init.HeUniform(),
-            W=lasagne.init.Normal(.01),
-            b=lasagne.init.Constant(.1)
-        )
-
-        l_hidden_ram1 = lasagne.layers.DenseLayer(
-            self.l_ram_in,
-            num_units=self.RAM_SIZE,
-            nonlinearity=lasagne.nonlinearities.rectify,
-            W=lasagne.init.Normal(.01),
-            b=lasagne.init.Constant(.1)
-        )
-
-        l_hidden_ram2 = lasagne.layers.DenseLayer(
-            l_hidden_ram1,
-            num_units=self.RAM_SIZE,
-            nonlinearity=lasagne.nonlinearities.rectify,
-            W=lasagne.init.Normal(.01),
-            b=lasagne.init.Constant(.1)
-        )
-
-        l_joined = lasagne.layers.ConcatLayer(
-            [l_hidden1, l_hidden_ram2],
-            axis=1  # 0-based
-        )
-
-        l_hidden_joined = lasagne.layers.DenseLayer(
-            l_joined,
-            num_units=256,
-            nonlinearity=lasagne.nonlinearities.rectify,
-            W=lasagne.init.Normal(.01),
-            b=lasagne.init.Constant(.1)
-        )
-
-        l_out = lasagne.layers.DenseLayer(
-            l_hidden_joined,
-            num_units=output_dim,
-            nonlinearity=None,
-            #W=lasagne.init.HeUniform(),
-            W=lasagne.init.Normal(.01),
             b=lasagne.init.Constant(.1)
         )
 

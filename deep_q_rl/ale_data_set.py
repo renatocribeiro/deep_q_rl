@@ -8,16 +8,16 @@ import theano
 
 floatX = theano.config.floatX
 
+
 class DataSet(object):
     """A replay memory consisting of circular buffers for observed images,
 actions, and rewards.
 
     """
-    def __init__(self, width, height, rng, max_steps=1000, phi_length=4, ram_size=128):
+    def __init__(self, rng, max_steps=1000, phi_length=4, ram_size=128):
         """Construct a DataSet.
 
         Arguments:
-            width, height - image size
             max_steps - the number of time steps to store
             phi_length - number of images to concatenate into a state
             rng - initialized numpy random number generator, used to
@@ -28,8 +28,6 @@ actions, and rewards.
         # number of saved time steps.
 
         # Store arguments.
-        self.width = width
-        self.height = height
         self.max_steps = max_steps
         self.phi_length = phi_length
         self.rng = rng
@@ -49,7 +47,6 @@ actions, and rewards.
         """Add a time step record.
 
         Arguments:
-            img -- observed image
             ram -- observed ram state
             action -- action chosen by the agent
             reward -- reward received after taking the action
@@ -93,7 +90,7 @@ actions, and rewards.
             initial_indices = np.arange(index, index + self.phi_length)
             transition_indices = initial_indices + 1
             end_index = index + self.phi_length - 1
-            
+
             # Check that the initial state corresponds entirely to a
             # single episode, meaning none but the last frame may be
             # terminal. If the last frame of the initial state is
@@ -109,8 +106,7 @@ actions, and rewards.
             actions[count] = self.actions.take(end_index, mode='wrap')
             rewards[count] = self.rewards.take(end_index, mode='wrap')
             terminal[count] = self.terminal.take(end_index, mode='wrap')
-            next_rams[count] = self.rams.take(end_index+1,
-                axis=0, mode='wrap')
+            next_rams[count] = self.rams.take(end_index+1, axis=0, mode='wrap')
             count += 1
 
         return rams, actions, rewards, next_rams, terminal
@@ -187,11 +183,11 @@ def trivial_tests():
 
 def max_size_tests():
     dataset1 = DataSet(width=3, height=4,
-                      rng=np.random.RandomState(42),
-                      max_steps=10, phi_length=4)
+                       rng=np.random.RandomState(42),
+                       max_steps=10, phi_length=4)
     dataset2 = DataSet(width=3, height=4,
-                      rng=np.random.RandomState(42),
-                      max_steps=1000, phi_length=4)
+                       rng=np.random.RandomState(42),
+                       max_steps=1000, phi_length=4)
     for i in range(100):
         img = np.random.randint(0, 256, size=(4, 3))
         action = np.random.randint(16)
@@ -219,7 +215,7 @@ def test_memory_usage_ok():
         dataset.add_sample(np.random.random((80, 80)), 1, 1, False)
         if i > 200000:
             states, actions, rewards, next_states, terminals = \
-                                        dataset.random_batch(32)
+                dataset.random_batch(32)
         if (i % 10007) == 0:
             print time.time() - last
             mem_usage = memory_profiler.memory_usage(-1)

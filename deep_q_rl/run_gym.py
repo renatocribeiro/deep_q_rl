@@ -27,7 +27,7 @@ class Defaults:
     BASE_ROM_PATH = "../roms/"
     ROM = 'seaquest.bin'
     ENV_NAME = 'Seaquest-ram-v0'
-    FRAME_SKIP = 4
+    FRAME_SKIP = 2
     REPEAT_ACTION_PROBABILITY = 0
 
     # ----------------------
@@ -46,7 +46,7 @@ class Defaults:
     EPSILON_DECAY = 1000000
     PHI_LENGTH = 4
     UPDATE_FREQUENCY = 1
-    REPLAY_MEMORY_SIZE = 100000 # TODO:
+    REPLAY_MEMORY_SIZE = 100000  # TODO:
     BATCH_SIZE = 32
     NETWORK_TYPE = "big_ram"
     FREEZE_INTERVAL = -1

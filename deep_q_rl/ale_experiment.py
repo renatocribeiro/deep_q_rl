@@ -8,11 +8,6 @@ import logging
 import numpy as np
 import cv2
 
-# Number of rows to crop off the bottom of the (downsampled) screen.
-# This is appropriate for breakout, but it may need to be modified
-# for other games.
-CROP_OFFSET = 8
-
 
 class ALEExperiment(object):
     def __init__(self, gym_env, agent, resized_width, resized_height,
@@ -25,8 +20,6 @@ class ALEExperiment(object):
         self.test_length = test_length
         self.frame_skip = frame_skip
         self.death_ends_episode = death_ends_episode
-        self.resized_width = resized_width
-        self.resized_height = resized_height
         self.resize_method = resize_method
 
         self.buffer_length = 2
@@ -107,7 +100,7 @@ class ALEExperiment(object):
         the summed reward. """
         reward = 0
         done = False
-        for _ in range(self.frame_skip):  # TODO: reduce frameskip
+        for _ in range(self.frame_skip):
             local_reward, local_done = self._act(action_id)
             reward += local_reward
             if local_done:

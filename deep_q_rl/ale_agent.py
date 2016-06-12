@@ -18,6 +18,7 @@ import ale_data_set
 import sys
 sys.setrecursionlimit(10000)
 
+
 class NeuralAgent(object):
 
     def __init__(self, q_network, epsilon_start, epsilon_min,
@@ -35,36 +36,28 @@ class NeuralAgent(object):
         self.rng = rng
 
         self.phi_length = self.network.num_frames
-        self.image_width = self.network.input_width
-        self.image_height = self.network.input_height
 
         # CREATE A FOLDER TO HOLD RESULTS
         time_str = time.strftime("_%m-%d-%H-%M_", time.gmtime())
         self.exp_dir = self.exp_pref + time_str + \
-                       "{}".format(self.network.lr).replace(".", "p") + "_" \
-                       + "{}".format(self.network.discount).replace(".", "p")
+            "{}".format(self.network.lr).replace(".", "p") + "_" \
+            + "{}".format(self.network.discount).replace(".", "p")
 
         try:
             os.stat(self.exp_dir)
         except OSError:
             os.makedirs(self.exp_dir)
 
-
         self.save_info_file()
 
         self.num_actions = self.network.num_actions
 
-
-        self.data_set = ale_data_set.DataSet(width=self.image_width,
-                                             height=self.image_height,
-                                             rng=rng,
+        self.data_set = ale_data_set.DataSet(rng=rng,
                                              max_steps=self.replay_memory_size,
                                              phi_length=self.phi_length)
 
         # just needs to be big enough to create phi's
-        self.test_data_set = ale_data_set.DataSet(width=self.image_width,
-                                                  height=self.image_height,
-                                                  rng=rng,
+        self.test_data_set = ale_data_set.DataSet(rng=rng,
                                                   max_steps=self.phi_length * 2,
                                                   phi_length=self.phi_length)
         self.epsilon = self.epsilon_start
@@ -93,7 +86,7 @@ class NeuralAgent(object):
     def _open_results_file(self):
         logging.info("OPENING " + self.exp_dir + '/results.csv')
         self.results_file = open(self.exp_dir + '/results.csv', 'w', 0)
-        self.results_file.write(\
+        self.results_file.write(
             'epoch,num_episodes,total_reward,reward_per_epoch,mean_q\n')
         self.results_file.flush()
 
@@ -132,7 +125,6 @@ class NeuralAgent(object):
         an action has been taken.
 
         Arguments:
-           observation - height x width numpy array
            ram         - state of the ram numpy array of size 128
 
         Returns:
@@ -155,7 +147,6 @@ class NeuralAgent(object):
 
         return return_action
 
-
     def _show_phis(self, phi1, phi2):
         import matplotlib.pyplot as plt
         for p in range(self.phi_length):
@@ -174,7 +165,6 @@ class NeuralAgent(object):
 
         Arguments:
            reward      - Real valued reward.
-           observation - A height x width numpy array,
                          denoting an image to pass to the network
            ram         - RAM_SIZE numpy vector, denoting the state of the ram
 
@@ -206,11 +196,10 @@ class NeuralAgent(object):
                     self.batch_counter += 1
                     self.loss_averages.append(loss)
 
-            else: # Still gathering initial random data...
+            else:  # Still gathering initial random data...
                 action = self._choose_action(self.data_set, self.epsilon,
                                              ram,
                                              np.clip(reward, -1, 1))
-
 
         self.last_action = action
         self.last_ram = ram
@@ -239,10 +228,9 @@ class NeuralAgent(object):
         May be overridden if a subclass needs to train the network
         differently.
         """
-        rams, actions, rewards, next_rams, terminals = \
-                self.data_set.random_batch(self.network.batch_size)
+        rams, actions, rewards, next_rams, terminals =\
+            self.data_set.random_batch(self.network.batch_size)
         return self.network.train(actions, rewards, terminals, rams, next_rams)
-
 
     def end_episode(self, reward, terminal=True):
         """
@@ -277,7 +265,7 @@ class NeuralAgent(object):
                 self._update_learning_file()
 
     def finish_epoch(self, epoch):
-        net_file = open(self.exp_dir + '/network_file_' + str(epoch) + \
+        net_file = open(self.exp_dir + '/network_file_' + str(epoch) +
                         '.pkl', 'w')
         cPickle.dump(self.network, net_file, -1)
         net_file.close()
