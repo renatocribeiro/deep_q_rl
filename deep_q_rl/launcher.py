@@ -7,7 +7,6 @@ run_nips.py or run_nature.py.
 import os
 import argparse
 import logging
-import ale_python_interface
 import gym
 import cPickle
 import numpy as np
