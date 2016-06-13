@@ -140,6 +140,9 @@ def process_args(args, defaults, description):
     parser.add_argument('--env-name', dest="env_name",
                         type=str, default=defaults.ENV_NAME,
                         help=('Name of the OpenAI Gym environment to run.'))
+    parser.add_argument('--results-path', dest="gym_results_path",
+                        type=str, default=defaults.GYM_RESULTS_PATH,
+                        help=('Directory in which the Gym evaluations will be saved.'))
 
     parameters = parser.parse_args(args)
     if parameters.experiment_prefix is None:
@@ -182,7 +185,7 @@ def launch(args, defaults, description):
 
     # setting gym
     gym_env = gym.make(parameters.env_name)
-    log_path = '/icm/home/sygnowsk/sygi-q-rl/results/' + parameters.env_name +\
+    log_path = parameters.gym_results_path + parameters.env_name +\
         "-" + str(random.randint(0, 100))
     print 'saving evaluation to: ' + log_path
 

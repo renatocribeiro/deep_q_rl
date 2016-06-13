@@ -24,7 +24,7 @@ class Defaults:
     # ----------------------
     # ALE/GYM Parameters
     # ----------------------
-    BASE_ROM_PATH = "../roms/"
+    GYM_RESULTS_PATH = "/tmp/"
     ROM = 'seaquest.bin'
     ENV_NAME = 'Seaquest-ram-v0'
     FRAME_SKIP = 2
